@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pharmaceutical Tracking System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio,line-clamp"></script>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div id="app" class="min-h-screen">
+        <!-- Navigation -->
+        <nav class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-4 shadow-lg">
+            <div class="container mx-auto flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                        <span class="text-white font-bold text-sm">P</span>
+                    </div>
+                    <h1 class="text-xl font-bold">PharmaTrack</h1>
+                </div>
+                <div id="nav-links" class="flex space-x-4 hidden">
+                    <a href="#" onclick="showSection('dashboard')" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Dashboard</a>
+                    <a href="#" onclick="showSection('inventory')" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Inventory</a>
+                    <a href="#" onclick="showSection('prescriptions')" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Prescriptions</a>
+                    <a href="#" onclick="showSection('patients')" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Patients</a>
+                    <a href="#" onclick="showSection('reports')" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Reports</a>
+                    <a href="#" onclick="logout()" class="bg-red-500 hover:bg-red-600 px-3 py-2 rounded transition duration-200">Logout</a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Login Section -->
+        <div id="login-section" class="min-h-[calc(100vh-80px)] flex items-center justify-center">
+            <div class="max-w-4xl mx-auto px-4 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                <!-- Welcome Content -->
+                <div class="text-center md:text-left">
+                    <h1 class="text-4xl md:text-5xl font-bold text-gray-800 mb-4">
+                        Welcome to <span class="text-blue-600">PharmaTrack</span>
+                    </h1>
+                    <p class="text-lg text-gray-600 mb-6">
+                        Sierra Leone's premier pharmacy management system. Streamline healthcare operations
+                        with comprehensive medication tracking, prescription management, and patient care solutions.
+                    </p>
+                    <div class="grid grid-cols-2 gap-4 text-center">
+                        <div class="bg-white bg-opacity-50 p-4 rounded-lg">
+                            <div class="text-2xl font-bold text-blue-600">100+</div>
+                            <div class="text-sm text-gray-600">Medications</div>
+                        </div>
+                        <div class="bg-white bg-opacity-50 p-4 rounded-lg">
+                            <div class="text-2xl font-bold text-green-600">50+</div>
+                            <div class="text-sm text-gray-600">Patients</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Login Form -->
+                <div class="bg-white p-8 rounded-xl shadow-xl">
+                    <div class="text-center mb-6">
+                        <h2 class="text-3xl font-bold text-gray-800">Sign In</h2>
+                        <p class="text-gray-600 mt-2">Access your pharmacy dashboard</p>
+                    </div>
+                    <form id="login-form">
+                        <div class="mb-4">
+                            <label class="block text-gray-700 font-medium mb-2">Username</label>
+                            <input type="text" id="username" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200" placeholder="Enter username" required>
+                        </div>
+                        <div class="mb-6">
+                            <label class="block text-gray-700 font-medium mb-2">Password</label>
+                            <input type="password" id="password" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200" placeholder="Enter password" required>
+                        </div>
+                        <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-3 px-4 rounded-lg hover:from-blue-700 hover:to-indigo-800 transition duration-200 font-medium">
+                            Login to Dashboard
+                        </button>
+                    </form>
+                    <div class="mt-6 text-center text-sm text-gray-600">
+                        <p>Demo Credentials:</p>
+                        <p><strong>Admin:</strong> admin / admin123</p>
+                        <p><strong>Pharmacist:</strong> pharmacist / pharm123</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div id="main-content" class="container mx-auto p-8 hidden">
+            <!-- Dashboard -->
+            <div id="dashboard-section" class="section">
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">Dashboard Overview</h2>
+                    <p class="text-gray-600">Monitor your pharmacy's key metrics and operations</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-xl shadow-lg text-white">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="text-lg font-medium opacity-90">Total Medications</h3>
+                                <p id="total-meds" class="text-3xl font-bold mt-2">0</p>
+                            </div>
+                            <div class="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                                <span class="text-2xl">💊</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-green-500 to-green-600 p-6 rounded-xl shadow-lg text-white">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="text-lg font-medium opacity-90">Active Prescriptions</h3>
+                                <p id="active-prescriptions" class="text-3xl font-bold mt-2">0</p>
+                            </div>
+                            <div class="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                                <span class="text-2xl">📋</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-yellow-500 to-orange-500 p-6 rounded-xl shadow-lg text-white">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="text-lg font-medium opacity-90">Low Stock Items</h3>
+                                <p id="low-stock" class="text-3xl font-bold mt-2">0</p>
+                            </div>
+                            <div class="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                                <span class="text-2xl">⚠️</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-purple-500 to-purple-600 p-6 rounded-xl shadow-lg text-white">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="text-lg font-medium opacity-90">Total Patients</h3>
+                                <p id="total-patients" class="text-3xl font-bold mt-2">0</p>
+                            </div>
+                            <div class="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                                <span class="text-2xl">👥</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Quick Actions</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <button onclick="showSection('inventory'); showAddMedForm()" class="bg-blue-50 hover:bg-blue-100 p-4 rounded-lg border border-blue-200 transition duration-200">
+                            <div class="text-center">
+                                <span class="text-2xl mb-2 block">➕</span>
+                                <span class="text-sm font-medium text-blue-700">Add Medication</span>
+                            </div>
+                        </button>
+                        <button onclick="showSection('prescriptions'); showAddPrescriptionForm()" class="bg-green-50 hover:bg-green-100 p-4 rounded-lg border border-green-200 transition duration-200">
+                            <div class="text-center">
+                                <span class="text-2xl mb-2 block">📝</span>
+                                <span class="text-sm font-medium text-green-700">New Prescription</span>
+                            </div>
+                        </button>
+                        <button onclick="showSection('patients'); showAddPatientForm()" class="bg-purple-50 hover:bg-purple-100 p-4 rounded-lg border border-purple-200 transition duration-200">
+                            <div class="text-center">
+                                <span class="text-2xl mb-2 block">👤</span>
+                                <span class="text-sm font-medium text-purple-700">Add Patient</span>
+                            </div>
+                        </button>
+                        <button onclick="showSection('reports')" class="bg-orange-50 hover:bg-orange-100 p-4 rounded-lg border border-orange-200 transition duration-200">
+                            <div class="text-center">
+                                <span class="text-2xl mb-2 block">📊</span>
+                                <span class="text-sm font-medium text-orange-700">View Reports</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inventory Section -->
+            <div id="inventory-section" class="section hidden">
+                <h2 class="text-3xl mb-6">Inventory Management</h2>
+                <button onclick="showAddMedForm()" class="bg-green-600 text-white px-4 py-2 rounded mb-4">Add Medication</button>
+                <div id="inventory-list" class="bg-white p-6 rounded-lg shadow-md">
+                    <!-- Inventory table will be populated here -->
+                </div>
+            </div>
+
+            <!-- Prescriptions Section -->
+            <div id="prescriptions-section" class="section hidden">
+                <h2 class="text-3xl mb-6">Prescription Management</h2>
+                <button onclick="showAddPrescriptionForm()" class="bg-green-600 text-white px-4 py-2 rounded mb-4">Add Prescription</button>
+                <div id="prescriptions-list" class="bg-white p-6 rounded-lg shadow-md">
+                    <!-- Prescriptions table will be populated here -->
+                </div>
+            </div>
+
+            <!-- Patients Section -->
+            <div id="patients-section" class="section hidden">
+                <h2 class="text-3xl mb-6">Patient Management</h2>
+                <button onclick="showAddPatientForm()" class="bg-green-600 text-white px-4 py-2 rounded mb-4">Add Patient</button>
+                <div id="patients-list" class="bg-white p-6 rounded-lg shadow-md">
+                    <!-- Patients table will be populated here -->
+                </div>
+            </div>
+
+            <!-- Reports Section -->
+            <div id="reports-section" class="section hidden">
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">Reports & Analytics</h2>
+                    <p class="text-gray-600">Generate detailed reports on inventory and prescription data</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="bg-white p-6 rounded-xl shadow-lg">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-xl font-bold text-gray-800">📊 Inventory Report</h3>
+                            <button onclick="generateInventoryReport()" class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-indigo-800 transition duration-200">
+                                Generate Report
+                            </button>
+                        </div>
+                        <div id="inventory-report" class="space-y-3">
+                            <div class="text-center text-gray-500 py-8">
+                                <span class="text-4xl mb-2 block">📈</span>
+                                <p>Click "Generate Report" to view inventory analytics</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-xl shadow-lg">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-xl font-bold text-gray-800">📋 Prescription Report</h3>
+                            <button onclick="generatePrescriptionReport()" class="bg-gradient-to-r from-green-600 to-teal-700 text-white px-4 py-2 rounded-lg hover:from-green-700 hover:to-teal-800 transition duration-200">
+                                Generate Report
+                            </button>
+                        </div>
+                        <div id="prescription-report" class="space-y-3">
+                            <div class="text-center text-gray-500 py-8">
+                                <span class="text-4xl mb-2 block">📊</span>
+                                <p>Click "Generate Report" to view prescription analytics</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-gradient-to-br from-indigo-500 to-purple-600 p-6 rounded-xl shadow-lg text-white">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h4 class="text-lg font-medium opacity-90">System Health</h4>
+                                <p class="text-2xl font-bold mt-2">Excellent</p>
+                                <p class="text-sm opacity-75">All systems operational</p>
+                            </div>
+                            <div class="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                                <span class="text-2xl">✅</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-green-500 to-emerald-600 p-6 rounded-xl shadow-lg text-white">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h4 class="text-lg font-medium opacity-90">Data Security</h4>
+                                <p class="text-2xl font-bold mt-2">Secure</p>
+                                <p class="text-sm opacity-75">Local storage encryption</p>
+                            </div>
+                            <div class="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                                <span class="text-2xl">🔒</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-orange-500 to-red-500 p-6 rounded-xl shadow-lg text-white">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h4 class="text-lg font-medium opacity-90">Last Backup</h4>
+                                <p class="text-2xl font-bold mt-2">Today</p>
+                                <p class="text-sm opacity-75">Auto-sync enabled</p>
+                            </div>
+                            <div class="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                                <span class="text-2xl">💾</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals for forms -->
+    <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center">
+        <div class="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+            <div id="modal-content">
+                <!-- Form content will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8 mt-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div>
+                    <div class="flex items-center space-x-2 mb-4">
+                        <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                            <span class="text-white font-bold text-sm">P</span>
+                        </div>
+                        <h3 class="text-xl font-bold">PharmaTrack</h3>
+                    </div>
+                    <p class="text-gray-400">
+                        Sierra Leone's leading pharmacy management system for efficient medication tracking,
+                        prescription management, and quality patient care across the nation.
+                    </p>
+                </div>
+
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Quick Links</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#" onclick="showSection('dashboard')" class="hover:text-white transition duration-200">Dashboard</a></li>
+                        <li><a href="#" onclick="showSection('inventory')" class="hover:text-white transition duration-200">Inventory</a></li>
+                        <li><a href="#" onclick="showSection('prescriptions')" class="hover:text-white transition duration-200">Prescriptions</a></li>
+                        <li><a href="#" onclick="showSection('reports')" class="hover:text-white transition duration-200">Reports</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Contact Info</h4>
+                    <div class="space-y-2 text-gray-400">
+                        <p>📧 support@pharmatrack.sl</p>
+                        <p>📞 +232 76 772 318</p>
+                        <p>📍 15 Siaka Stevens Street, Freetown, Sierra Leone</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="border-t border-gray-700 mt-8 pt-6 text-center text-gray-400">
+                <p>&copy; 2025 PharmaTrack. All rights reserved. | Built by Limkokwing students.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

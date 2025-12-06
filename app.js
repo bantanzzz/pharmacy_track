@@ -29,12 +29,30 @@ function initializeData() {
             },
             {
                 id: 3,
-                username: 'patient',
-                password: hashPassword('patient123'),
+                username: 'sarahjohnson',
+                password: hashPassword('123johnson'),
                 role: 'patient',
                 name: 'Sarah Johnson',
                 email: 'sarah.j@email.com',
                 patientId: 1 // Link to patient record
+            },
+            {
+                id: 4,
+                username: 'michaelchen',
+                password: hashPassword('123chen'),
+                role: 'patient',
+                name: 'Michael Chen',
+                email: 'm.chen@email.com',
+                patientId: 2 // Link to patient record
+            },
+            {
+                id: 5,
+                username: 'emilydavis',
+                password: hashPassword('123davis'),
+                role: 'patient',
+                name: 'Emily Davis',
+                email: 'emily.davis@email.com',
+                patientId: 3 // Link to patient record
             }
         ];
         localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(defaultUsers));
@@ -538,8 +556,24 @@ function showPatientDashboard() {
     });
 
     const user = getCurrentUser();
+
+    // Check if user has patientId
+    if (!user.patientId) {
+        alert('Your account is not properly configured as a patient. Please contact the administrator.');
+        logout();
+        return;
+    }
+
     const patient = getData(STORAGE_KEYS.PATIENTS).find(p => p.id == user.patientId);
-    const prescriptions = patient ? getData(STORAGE_KEYS.PRESCRIPTIONS).filter(pr => pr.patientId == user.patientId) : [];
+
+    // Check if patient record exists
+    if (!patient) {
+        alert('Your patient record was not found. Please contact the administrator.');
+        logout();
+        return;
+    }
+
+    const prescriptions = getData(STORAGE_KEYS.PRESCRIPTIONS).filter(pr => pr.patientId == user.patientId);
 
     const container = document.getElementById('main-content');
 
@@ -1026,9 +1060,27 @@ function showAddPatientForm() {
             phone: formData.get('phone'),
             email: formData.get('email')
         };
-        addData(STORAGE_KEYS.PATIENTS, patient);
+        const newPatient = addData(STORAGE_KEYS.PATIENTS, patient);
+
+        // Auto-create user account for the patient
+        const nameParts = patient.name.toLowerCase().split(' ');
+        const username = nameParts.join(''); // Remove spaces
+        const lastName = nameParts[nameParts.length - 1];
+        const password = '123' + lastName;
+
+        const user = {
+            username: username,
+            password: hashPassword(password),
+            role: 'patient',
+            name: patient.name,
+            email: patient.email,
+            patientId: newPatient.id
+        };
+        addData(STORAGE_KEYS.USERS, user);
+
         hideModal();
         renderPatients();
+        alert(`Patient added successfully! Login credentials: ${username} / ${password}`);
     });
 }
 

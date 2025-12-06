@@ -17,7 +17,7 @@ function initializeData() {
                 password: hashPassword('admin123'),
                 role: 'admin',
                 name: 'Administrator',
-                email: 'admin@pharma.com'
+                email: 'admin@nawe.com'
             },
             {
                 id: 2,
@@ -25,7 +25,16 @@ function initializeData() {
                 password: hashPassword('pharm123'),
                 role: 'pharmacist',
                 name: 'John Pharmacist',
-                email: 'john@pharma.com'
+                email: 'john@nawe.com'
+            },
+            {
+                id: 3,
+                username: 'patient',
+                password: hashPassword('patient123'),
+                role: 'patient',
+                name: 'Sarah Johnson',
+                email: 'sarah.j@email.com',
+                patientId: 1 // Link to patient record
             }
         ];
         localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(defaultUsers));
@@ -233,6 +242,10 @@ function showSection(sectionName) {
     if (sectionName === 'inventory') renderInventory();
     if (sectionName === 'prescriptions') renderPrescriptions();
     if (sectionName === 'patients') renderPatients();
+    if (sectionName === 'reports') {
+        generateInventoryReport();
+        generatePrescriptionReport();
+    }
 }
 
 function showLogin() {
@@ -244,8 +257,15 @@ function showLogin() {
 function showMain() {
     document.getElementById('login-section').classList.add('hidden');
     document.getElementById('main-content').classList.remove('hidden');
-    showSection('dashboard');
-    updateDashboard();
+
+    const user = getCurrentUser();
+    if (user.role === 'patient') {
+        showPatientDashboard();
+    } else {
+        showSection('dashboard');
+        updateDashboard();
+    }
+    updateNavigation();
 }
 
 function showModal(content) {
@@ -266,6 +286,46 @@ function toggleMobileMenu() {
 function closeMobileMenu() {
     const mobileMenu = document.getElementById('mobile-menu');
     mobileMenu.classList.add('hidden');
+}
+
+// Role-based navigation
+function updateNavigation() {
+    const user = getCurrentUser();
+    const navLinks = document.getElementById('nav-links');
+    const mobileMenu = document.getElementById('mobile-menu');
+
+    if (user.role === 'patient') {
+        navLinks.innerHTML = `
+            <a href="#" onclick="showPatientDashboard()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">My Records</a>
+            <a href="#" onclick="logout()" class="bg-red-500 hover:bg-red-600 px-3 py-2 rounded transition duration-200">Logout</a>
+        `;
+        mobileMenu.innerHTML = `
+            <div class="flex flex-col space-y-2 px-4">
+                <a href="#" onclick="showPatientDashboard(); closeMobileMenu()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">My Records</a>
+                <a href="#" onclick="logout(); closeMobileMenu()" class="bg-red-500 hover:bg-red-600 px-3 py-2 rounded transition duration-200">Logout</a>
+            </div>
+        `;
+    } else {
+        // Admin/Pharmacist navigation
+        navLinks.innerHTML = `
+            <a href="#" onclick="showSection('dashboard')" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Dashboard</a>
+            <a href="#" onclick="showSection('inventory')" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Inventory</a>
+            <a href="#" onclick="showSection('prescriptions')" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Prescriptions</a>
+            <a href="#" onclick="showSection('patients')" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Patients</a>
+            <a href="#" onclick="showSection('reports')" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Reports</a>
+            <a href="#" onclick="logout()" class="bg-red-500 hover:bg-red-600 px-3 py-2 rounded transition duration-200">Logout</a>
+        `;
+        mobileMenu.innerHTML = `
+            <div class="flex flex-col space-y-2 px-4">
+                <a href="#" onclick="showSection('dashboard'); closeMobileMenu()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Dashboard</a>
+                <a href="#" onclick="showSection('inventory'); closeMobileMenu()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Inventory</a>
+                <a href="#" onclick="showSection('prescriptions'); closeMobileMenu()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Prescriptions</a>
+                <a href="#" onclick="showSection('patients'); closeMobileMenu()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Patients</a>
+                <a href="#" onclick="showSection('reports'); closeMobileMenu()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Reports</a>
+                <a href="#" onclick="logout(); closeMobileMenu()" class="bg-red-500 hover:bg-red-600 px-3 py-2 rounded transition duration-200">Logout</a>
+            </div>
+        `;
+    }
 }
 
 // Dashboard
@@ -470,14 +530,200 @@ function deleteMedication(id) {
     }
 }
 
+// Patient dashboard
+function showPatientDashboard() {
+    // Hide all sections
+    document.querySelectorAll('.section').forEach(section => {
+        section.classList.add('hidden');
+    });
+
+    const user = getCurrentUser();
+    const patient = getData(STORAGE_KEYS.PATIENTS).find(p => p.id == user.patientId);
+    const prescriptions = patient ? getData(STORAGE_KEYS.PRESCRIPTIONS).filter(pr => pr.patientId == user.patientId) : [];
+
+    const container = document.getElementById('main-content');
+
+    let html = `
+        <div class="container mx-auto p-8">
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-gray-800 mb-2">My Health Records</h2>
+                <p class="text-gray-600">View your personal information and prescription history</p>
+            </div>
+
+            <!-- Patient Info -->
+            <div class="bg-white p-6 rounded-xl shadow-lg mb-8">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">Personal Information</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div><strong>Name:</strong> ${patient ? patient.name : 'N/A'}</div>
+                    <div><strong>Date of Birth:</strong> ${patient ? patient.dob : 'N/A'}</div>
+                    <div><strong>Phone:</strong> ${patient ? patient.phone : 'N/A'}</div>
+                    <div><strong>Email:</strong> ${patient ? patient.email : 'N/A'}</div>
+                    <div class="md:col-span-2"><strong>Address:</strong> ${patient ? patient.address : 'N/A'}</div>
+                </div>
+            </div>
+
+            <!-- Prescriptions -->
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">My Prescriptions</h3>
+    `;
+
+    if (prescriptions.length === 0) {
+        html += '<p class="text-gray-500">No prescriptions found.</p>';
+    } else {
+        html += `
+            <div class="space-y-4">
+        `;
+        prescriptions.forEach(prescription => {
+            const itemsHtml = prescription.items.map(item => {
+                const med = getData(STORAGE_KEYS.MEDICATIONS).find(m => m.id == item.medicationId);
+                return med ? `${med.name} (${item.quantity})` : 'Unknown medication';
+            }).join(', ');
+
+            html += `
+                <div class="border border-gray-200 rounded-lg p-4">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="font-medium">Date: ${prescription.date}</span>
+                        <span class="px-2 py-1 rounded text-sm ${prescription.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}">
+                            ${prescription.status}
+                        </span>
+                    </div>
+                    <div class="mb-2"><strong>Medications:</strong> ${itemsHtml}</div>
+                    <div><strong>Instructions:</strong> ${prescription.instructions || 'No instructions provided'}</div>
+                </div>
+            `;
+        });
+        html += '</div>';
+    }
+
+    html += `
+            </div>
+        </div>
+    `;
+
+    // Insert the patient dashboard content
+    const dashboardSection = document.getElementById('dashboard-section');
+    dashboardSection.innerHTML = html;
+    dashboardSection.classList.remove('hidden');
+}
+
 function viewPrescription(id) {
-    // TODO: Implement view prescription details
-    alert('View prescription - to be implemented');
+    const prescriptions = getData(STORAGE_KEYS.PRESCRIPTIONS);
+    const prescription = prescriptions.find(p => p.id == id);
+    if (!prescription) return;
+
+    const patient = getData(STORAGE_KEYS.PATIENTS).find(p => p.id == prescription.patientId);
+    const patientName = patient ? patient.name : 'Unknown';
+
+    let itemsHtml = prescription.items.map(item => {
+        const med = getData(STORAGE_KEYS.MEDICATIONS).find(m => m.id == item.medicationId);
+        return med ? `<li class="mb-2 p-2 bg-gray-50 rounded">${med.name} - Quantity: ${item.quantity}</li>` : '<li>Unknown medication</li>';
+    }).join('');
+
+    const modalContent = `
+        <h3 class="text-xl font-bold mb-4">Prescription Details</h3>
+        <div class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+                <div><strong>Patient:</strong> ${patientName}</div>
+                <div><strong>Date:</strong> ${prescription.date}</div>
+                <div><strong>Status:</strong> <span class="px-2 py-1 rounded text-sm ${prescription.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}">${prescription.status}</span></div>
+            </div>
+            <div>
+                <strong>Medications:</strong>
+                <ul class="mt-2">${itemsHtml}</ul>
+            </div>
+            ${prescription.instructions ? `<div><strong>Instructions:</strong> ${prescription.instructions}</div>` : ''}
+        </div>
+        <div class="flex justify-end mt-6">
+            <button onclick="hideModal()" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">Close</button>
+        </div>
+    `;
+
+    showModal(modalContent);
 }
 
 function editPrescription(id) {
-    // TODO: Implement edit prescription
-    alert('Edit prescription - to be implemented');
+    const prescriptions = getData(STORAGE_KEYS.PRESCRIPTIONS);
+    const prescription = prescriptions.find(p => p.id == id);
+    if (!prescription) return;
+
+    const patients = getData(STORAGE_KEYS.PATIENTS);
+    const medications = getData(STORAGE_KEYS.MEDICATIONS);
+
+    let patientOptions = patients.map(p => `<option value="${p.id}" ${p.id == prescription.patientId ? 'selected' : ''}>${p.name}</option>`).join('');
+
+    let medOptions = medications.map(m => {
+        const existingItem = prescription.items.find(item => item.medicationId == m.id);
+        const checked = existingItem ? 'checked' : '';
+        const quantity = existingItem ? existingItem.quantity : '';
+        return `<div class="flex items-center mb-2">
+            <input type="checkbox" name="medications" value="${m.id}" ${checked} class="mr-2">
+            <label>${m.name} (Stock: ${m.stock})</label>
+            <input type="number" name="quantity_${m.id}" value="${quantity}" placeholder="Qty" class="ml-2 w-16 p-1 border rounded" min="1">
+        </div>`;
+    }).join('');
+
+    const form = `
+        <h3 class="text-xl mb-4">Edit Prescription</h3>
+        <form id="edit-prescription-form">
+            <div class="mb-4">
+                <label class="block">Patient</label>
+                <select name="patientId" class="w-full p-2 border rounded" required>
+                    <option value="">Select Patient</option>
+                    ${patientOptions}
+                </select>
+            </div>
+            <div class="mb-4">
+                <label class="block">Medications</label>
+                ${medOptions}
+            </div>
+            <div class="mb-4">
+                <label class="block">Instructions</label>
+                <textarea name="instructions" class="w-full p-2 border rounded">${prescription.instructions || ''}</textarea>
+            </div>
+            <div class="mb-4">
+                <label class="block">Status</label>
+                <select name="status" class="w-full p-2 border rounded">
+                    <option value="active" ${prescription.status === 'active' ? 'selected' : ''}>Active</option>
+                    <option value="filled" ${prescription.status === 'filled' ? 'selected' : ''}>Filled</option>
+                    <option value="cancelled" ${prescription.status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
+                </select>
+            </div>
+            <div class="flex justify-end">
+                <button type="button" onclick="hideModal()" class="mr-2 px-4 py-2 bg-gray-500 text-white rounded">Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Update Prescription</button>
+            </div>
+        </form>
+    `;
+    showModal(form);
+
+    document.getElementById('edit-prescription-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const selectedMeds = [];
+        medications.forEach(m => {
+            const checkbox = document.querySelector(`input[name="medications"][value="${m.id}"]`);
+            if (checkbox && checkbox.checked) {
+                const qty = parseInt(document.querySelector(`input[name="quantity_${m.id}"]`).value) || 1;
+                selectedMeds.push({ medicationId: m.id, quantity: qty });
+            }
+        });
+
+        if (selectedMeds.length === 0) {
+            alert('Please select at least one medication');
+            return;
+        }
+
+        const updates = {
+            patientId: parseInt(formData.get('patientId')),
+            items: selectedMeds,
+            instructions: formData.get('instructions'),
+            status: formData.get('status')
+        };
+        updateData(STORAGE_KEYS.PRESCRIPTIONS, id, updates);
+        hideModal();
+        updateDashboard();
+        renderPrescriptions();
+    });
 }
 
 function fillPrescription(id) {
@@ -521,8 +767,55 @@ function fillPrescription(id) {
 }
 
 function editPatient(id) {
-    // TODO: Implement edit patient
-    alert('Edit patient - to be implemented');
+    const patients = getData(STORAGE_KEYS.PATIENTS);
+    const patient = patients.find(p => p.id == id);
+    if (!patient) return;
+
+    const form = `
+        <h3 class="text-xl mb-4">Edit Patient</h3>
+        <form id="edit-patient-form">
+            <div class="mb-4">
+                <label class="block">Name</label>
+                <input type="text" name="name" value="${patient.name}" class="w-full p-2 border rounded" required>
+            </div>
+            <div class="mb-4">
+                <label class="block">Date of Birth</label>
+                <input type="date" name="dob" value="${patient.dob}" class="w-full p-2 border rounded" required>
+            </div>
+            <div class="mb-4">
+                <label class="block">Address</label>
+                <textarea name="address" class="w-full p-2 border rounded" required>${patient.address}</textarea>
+            </div>
+            <div class="mb-4">
+                <label class="block">Phone</label>
+                <input type="tel" name="phone" value="${patient.phone}" class="w-full p-2 border rounded" required>
+            </div>
+            <div class="mb-4">
+                <label class="block">Email</label>
+                <input type="email" name="email" value="${patient.email || ''}" class="w-full p-2 border rounded">
+            </div>
+            <div class="flex justify-end">
+                <button type="button" onclick="hideModal()" class="mr-2 px-4 py-2 bg-gray-500 text-white rounded">Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Update Patient</button>
+            </div>
+        </form>
+    `;
+    showModal(form);
+
+    document.getElementById('edit-patient-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const updates = {
+            name: formData.get('name'),
+            dob: formData.get('dob'),
+            address: formData.get('address'),
+            phone: formData.get('phone'),
+            email: formData.get('email')
+        };
+        updateData(STORAGE_KEYS.PATIENTS, id, updates);
+        hideModal();
+        renderPatients();
+    });
 }
 
 function deletePatient(id) {

@@ -14,68 +14,36 @@ async function initializeData() {
         const users = await getData(COLLECTIONS.USERS);
         if (users.length > 0) return; // Data already initialized
 
-        // Create demo users in Firebase Auth and Firestore
+        // Create demo users in Firestore (Note: Firebase Auth users need to be created manually or via admin SDK)
+        // For demo purposes, we'll store user profiles that correspond to manually created Firebase Auth users
         const demoUsers = [
             {
-                email: 'admin@nawe.com',
-                password: 'admin123',
-                role: 'admin',
-                name: 'Administrator'
-            },
-            {
                 email: 'pharmacist@nawe.com',
-                password: 'pharm123',
                 role: 'pharmacist',
-                name: 'John Pharmacist'
+                name: 'John Pharmacist',
+                createdAt: new Date()
             },
             {
-                email: 'sarah.j@email.com',
-                password: '123johnson',
-                role: 'patient',
-                name: 'Sarah Johnson'
-            },
-            {
-                email: 'm.chen@email.com',
-                password: '123chen',
-                role: 'patient',
-                name: 'Michael Chen'
-            },
-            {
-                email: 'emily.davis@email.com',
-                password: '123davis',
-                role: 'patient',
-                name: 'Emily Davis'
+                email: 'charles@nawe.com',
+                role: 'pharmacist',
+                name: 'Charles User',
+                createdAt: new Date()
             }
         ];
 
-        // Create auth users and store profile data
         for (const userData of demoUsers) {
-            try {
-                const userCredential = await createUserWithEmailAndPassword(window.auth, userData.email, userData.password);
-                const uid = userCredential.user.uid;
-
-                // Store user profile in Firestore
-                await setDoc(doc(window.db, COLLECTIONS.USERS, uid), {
-                    email: userData.email,
-                    role: userData.role,
-                    name: userData.name,
-                    createdAt: new Date()
-                });
-
-                // For patients, create patient records
-                if (userData.role === 'patient') {
-                    const patientData = getPatientData(userData.name);
-                    const patientDoc = await addData(COLLECTIONS.PATIENTS, patientData);
-                    // Update user with patientId
-                    await updateData(COLLECTIONS.USERS, uid, { patientId: patientDoc.id });
-                }
-            } catch (error) {
-                console.error('Error creating user:', userData.email, error);
-            }
+            // Store user profile in Firestore with a known ID
+            const userId = userData.email.split('@')[0] + '_user';
+            await setDoc(doc(window.db, COLLECTIONS.USERS, userId), {
+                email: userData.email,
+                role: userData.role,
+                name: userData.name,
+                createdAt: userData.createdAt
+            });
         }
 
         // Add medications
-        const medications = [
+        const sampleMedications = [
             {
                 name: 'Amoxicillin 500mg',
                 description: 'Antibiotic for bacterial infections',
@@ -120,83 +88,46 @@ async function initializeData() {
             }
         ];
 
-        for (const med of medications) {
+        for (const med of sampleMedications) {
             await addData(COLLECTIONS.MEDICATIONS, med);
         }
 
-        // Add prescriptions (will be linked to patients after they're created)
-        setTimeout(async () => {
-            const patients = await getData(COLLECTIONS.PATIENTS);
-            if (patients.length >= 3) {
-                const prescriptions = [
-                    {
-                        patientId: patients[0].id,
-                        items: [
-                            { medicationId: 'med1', quantity: 30 },
-                            { medicationId: 'med5', quantity: 14 }
-                        ],
-                        instructions: 'Take Amoxicillin 3 times daily with food. Take Omeprazole once daily.',
-                        date: '2024-12-01',
-                        status: 'filled'
-                    },
-                    {
-                        patientId: patients[1].id,
-                        items: [
-                            { medicationId: 'med2', quantity: 30 },
-                            { medicationId: 'med6', quantity: 30 }
-                        ],
-                        instructions: 'Take once daily in the morning.',
-                        date: '2024-12-02',
-                        status: 'active'
-                    },
-                    {
-                        patientId: patients[2].id,
-                        items: [
-                            { medicationId: 'med3', quantity: 60 }
-                        ],
-                        instructions: 'Take twice daily with meals.',
-                        date: '2024-12-03',
-                        status: 'active'
-                    }
-                ];
-
-                for (const presc of prescriptions) {
-                    await addData(COLLECTIONS.PRESCRIPTIONS, presc);
-                }
+        // Create demo patients
+        const samplePatients = [
+            {
+                name: 'Sarah Johnson',
+                dob: '1985-03-15',
+                address: '32 Aberdeen Road, Freetown',
+                phone: '+232 76 123 456',
+                email: 'sarah.j@email.com'
+            },
+            {
+                name: 'Michael Chen',
+                dob: '1992-07-22',
+                address: '15 Kissy Street, Freetown',
+                phone: '+232 77 234 567',
+                email: 'm.chen@email.com'
+            },
+            {
+                name: 'Emily Davis',
+                dob: '1978-11-08',
+                address: '8 Wilkinson Road, Freetown',
+                phone: '+232 78 345 678',
+                email: 'emily.davis@email.com'
             }
-        }, 2000);
+        ];
+
+        for (const patient of samplePatients) {
+            await addData(COLLECTIONS.PATIENTS, patient);
+        }
+
+        console.log('Demo data initialized successfully');
 
     } catch (error) {
         console.error('Error initializing data:', error);
     }
 }
 
-function getPatientData(name) {
-    const patientTemplates = {
-        'Sarah Johnson': {
-            name: 'Sarah Johnson',
-            dob: '1985-03-15',
-            address: '32 Aberdeen Road, Freetown',
-            phone: '+232 76 123 456',
-            email: 'sarah.j@email.com'
-        },
-        'Michael Chen': {
-            name: 'Michael Chen',
-            dob: '1992-07-22',
-            address: '15 Kissy Street, Freetown',
-            phone: '+232 77 234 567',
-            email: 'm.chen@email.com'
-        },
-        'Emily Davis': {
-            name: 'Emily Davis',
-            dob: '1978-11-08',
-            address: '8 Wilkinson Road, Freetown',
-            phone: '+232 78 345 678',
-            email: 'emily.davis@email.com'
-        }
-    };
-    return patientTemplates[name] || {};
-}
 
 // Authentication (Firebase)
 async function login(email, password) {
@@ -309,10 +240,25 @@ async function showMain() {
     document.getElementById('main-content').classList.remove('hidden');
 
     const user = getCurrentUser();
-    const userData = await getData(COLLECTIONS.USERS);
-    const currentUserData = userData.find(u => u.id === user.uid);
+    if (!user) return;
 
-    if (currentUserData && currentUserData.role === 'patient') {
+    // Get user data from Firestore
+    let userData = null;
+    try {
+        if (user.email === 'pharmacist@nawe.com') {
+            const userDoc = await getDoc(doc(window.db, COLLECTIONS.USERS, 'pharmacist_user'));
+            userData = userDoc.data();
+        } else {
+            // For patients, find by email
+            const users = await getData(COLLECTIONS.USERS);
+            userData = users.find(u => u.email === user.email);
+        }
+    } catch (error) {
+        console.error('Error getting user data in showMain:', error);
+        userData = null;
+    }
+
+    if (userData && userData.role === 'patient') {
         showPatientDashboard();
     } else {
         showSection('dashboard');
@@ -348,10 +294,23 @@ async function updateNavigation() {
     const mobileMenu = document.getElementById('mobile-menu');
 
     if (user) {
-        const userData = await getData(COLLECTIONS.USERS);
-        const currentUserData = userData.find(u => u.id === user.uid);
+        // Get user data from Firestore
+        let userData = null;
+        try {
+            if (user.email === 'pharmacist@nawe.com') {
+                const userDoc = await getDoc(doc(window.db, COLLECTIONS.USERS, 'pharmacist_user'));
+                userData = userDoc.data();
+            } else {
+                // For patients, find by email
+                const users = await getData(COLLECTIONS.USERS);
+                userData = users.find(u => u.email === user.email);
+            }
+        } catch (error) {
+            console.error('Error getting user data in updateNavigation:', error);
+            userData = null;
+        }
 
-        if (currentUserData && currentUserData.role === 'patient') {
+        if (userData && userData.role === 'patient') {
             navLinks.innerHTML = `
                 <a href="#" onclick="showPatientDashboard()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">My Records</a>
                 <a href="#" onclick="logout()" class="bg-red-500 hover:bg-red-600 px-3 py-2 rounded transition duration-200">Logout</a>
@@ -597,18 +556,21 @@ async function showPatientDashboard() {
     });
 
     const user = getCurrentUser();
-    const userData = await getData(COLLECTIONS.USERS);
-    const currentUserData = userData.find(u => u.id === user.uid);
+    if (!user) return;
+
+    // Get user data from Firestore
+    const users = await getData(COLLECTIONS.USERS);
+    const userData = users.find(u => u.email === user.email);
 
     // Check if user has patientId
-    if (!currentUserData || !currentUserData.patientId) {
+    if (!userData || !userData.patientId) {
         alert('Your account is not properly configured as a patient. Please contact the administrator.');
         logout();
         return;
     }
 
     const patients = await getData(COLLECTIONS.PATIENTS);
-    const patient = patients.find(p => p.id == currentUserData.patientId);
+    const patient = patients.find(p => p.id == userData.patientId);
 
     // Check if patient record exists
     if (!patient) {
@@ -618,7 +580,7 @@ async function showPatientDashboard() {
     }
 
     const prescriptions = await getData(COLLECTIONS.PRESCRIPTIONS);
-    const userPrescriptions = prescriptions.filter(pr => pr.patientId == currentUserData.patientId);
+    const userPrescriptions = prescriptions.filter(pr => pr.patientId == userData.patientId);
 
     const container = document.getElementById('main-content');
 
@@ -910,8 +872,17 @@ async function deletePatient(id) {
 // Reset demo data
 async function resetData() {
     try {
-        // Note: In a production app, you might want to clear Firestore collections
-        // But for demo purposes, we'll just re-initialize
+        // Clear all collections and re-initialize
+        const collections = [COLLECTIONS.MEDICATIONS, COLLECTIONS.PATIENTS, COLLECTIONS.PRESCRIPTIONS];
+
+        for (const collectionName of collections) {
+            const data = await getData(collectionName);
+            for (const item of data) {
+                await deleteData(collectionName, item.id);
+            }
+        }
+
+        // Re-initialize demo data
         await initializeData();
         alert('Demo data has been reset. You can now login with the demo credentials.');
     } catch (error) {
@@ -926,7 +897,7 @@ document.addEventListener('DOMContentLoaded', function() {
     onAuthStateChanged(window.auth, async (user) => {
         if (user) {
             // User is signed in
-            await initializeData(); // Ensure data is initialized
+            initializeData().catch(error => console.error('Error initializing data:', error)); // Ensure data is initialized asynchronously
             showMain();
         } else {
             // User is signed out
@@ -944,7 +915,7 @@ document.addEventListener('DOMContentLoaded', function() {
             await login(email, password);
             // Auth state change will trigger showMain()
         } catch (error) {
-            alert('Invalid credentials: ' + error.message);
+            alert('Login failed: ' + error.message);
         }
     });
 
@@ -1128,35 +1099,24 @@ function showAddPatientForm() {
         };
         const newPatient = await addData(COLLECTIONS.PATIENTS, patient);
 
-        // Auto-create user account for the patient
+        // Generate login credentials (user needs to manually create in Firebase Auth)
         const nameParts = patient.name.toLowerCase().split(' ');
-        const username = nameParts.join(''); // Remove spaces
         const lastName = nameParts[nameParts.length - 1];
         const password = '123' + lastName;
 
-        try {
-            // Create Firebase Auth user
-            const userCredential = await createUserWithEmailAndPassword(window.auth, patient.email, password);
-            const uid = userCredential.user.uid;
+        // Store user profile in Firestore (will be linked when user logs in)
+        const userId = patient.email.replace('@', '_').replace('.', '_');
+        await setDoc(doc(window.db, COLLECTIONS.USERS, userId), {
+            email: patient.email,
+            role: 'patient',
+            name: patient.name,
+            patientId: newPatient.id,
+            createdAt: new Date()
+        });
 
-            // Store user profile in Firestore
-            await setDoc(doc(window.db, COLLECTIONS.USERS, uid), {
-                email: patient.email,
-                role: 'patient',
-                name: patient.name,
-                patientId: newPatient.id,
-                createdAt: new Date()
-            });
-
-            hideModal();
-            await renderPatients();
-            alert(`Patient added successfully! Login credentials: ${patient.email} / ${password}`);
-        } catch (error) {
-            console.error('Error creating patient user:', error);
-            alert('Patient record created but user account creation failed: ' + error.message);
-            hideModal();
-            await renderPatients();
-        }
+        hideModal();
+        await renderPatients();
+        alert(`Patient added successfully!\n\nTo enable login, manually create user in Firebase Auth:\nEmail: ${patient.email}\nPassword: ${password}\n\nThen the patient can login with these credentials.`);
     });
 }
 

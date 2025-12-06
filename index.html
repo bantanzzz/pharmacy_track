@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pharmaceutical Tracking System</title>
+    <title>Na We Pharmacy System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio,line-clamp"></script>
 </head>
@@ -14,17 +14,35 @@
             <div class="container mx-auto flex justify-between items-center">
                 <div class="flex items-center space-x-2">
                     <div class="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-                        <span class="text-white font-bold text-sm">P</span>
+                        <span class="text-white font-bold text-sm">N</span>
                     </div>
-                    <h1 class="text-xl font-bold">PharmaTrack</h1>
+                    <h1 class="text-xl font-bold">Na We Pharmacy System</h1>
                 </div>
-                <div id="nav-links" class="flex space-x-4 hidden">
+                <!-- Hamburger Menu Button -->
+                <button id="hamburger-btn" class="md:hidden flex flex-col space-y-1 p-2">
+                    <span class="w-6 h-0.5 bg-white"></span>
+                    <span class="w-6 h-0.5 bg-white"></span>
+                    <span class="w-6 h-0.5 bg-white"></span>
+                </button>
+                <!-- Navigation Links -->
+                <div id="nav-links" class="hidden md:flex space-x-4">
                     <a href="#" onclick="showSection('dashboard')" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Dashboard</a>
                     <a href="#" onclick="showSection('inventory')" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Inventory</a>
                     <a href="#" onclick="showSection('prescriptions')" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Prescriptions</a>
                     <a href="#" onclick="showSection('patients')" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Patients</a>
                     <a href="#" onclick="showSection('reports')" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Reports</a>
                     <a href="#" onclick="logout()" class="bg-red-500 hover:bg-red-600 px-3 py-2 rounded transition duration-200">Logout</a>
+                </div>
+            </div>
+            <!-- Mobile Menu -->
+            <div id="mobile-menu" class="md:hidden hidden bg-gradient-to-r from-blue-600 to-indigo-700 mt-4 pb-4">
+                <div class="flex flex-col space-y-2 px-4">
+                    <a href="#" onclick="showSection('dashboard'); closeMobileMenu()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Dashboard</a>
+                    <a href="#" onclick="showSection('inventory'); closeMobileMenu()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Inventory</a>
+                    <a href="#" onclick="showSection('prescriptions'); closeMobileMenu()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Prescriptions</a>
+                    <a href="#" onclick="showSection('patients'); closeMobileMenu()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Patients</a>
+                    <a href="#" onclick="showSection('reports'); closeMobileMenu()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Reports</a>
+                    <a href="#" onclick="logout(); closeMobileMenu()" class="bg-red-500 hover:bg-red-600 px-3 py-2 rounded transition duration-200">Logout</a>
                 </div>
             </div>
         </nav>
@@ -35,7 +53,7 @@
                 <!-- Welcome Content -->
                 <div class="text-center md:text-left">
                     <h1 class="text-4xl md:text-5xl font-bold text-gray-800 mb-4">
-                        Welcome to <span class="text-blue-600">PharmaTrack</span>
+                        Welcome to <span class="text-blue-600">Na We Pharmacy System</span>
                     </h1>
                     <p class="text-lg text-gray-600 mb-6">
                         Sierra Leone's premier pharmacy management system. Streamline healthcare operations
@@ -301,9 +319,9 @@
                 <div>
                     <div class="flex items-center space-x-2 mb-4">
                         <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                            <span class="text-white font-bold text-sm">P</span>
+                            <span class="text-white font-bold text-sm">N</span>
                         </div>
-                        <h3 class="text-xl font-bold">PharmaTrack</h3>
+                        <h3 class="text-xl font-bold">Na We Pharmacy System</h3>
                     </div>
                     <p class="text-gray-400">
                         Sierra Leone's leading pharmacy management system for efficient medication tracking,
@@ -332,7 +350,7 @@
             </div>
 
             <div class="border-t border-gray-700 mt-8 pt-6 text-center text-gray-400">
-                <p>&copy; 2025 PharmaTrack. All rights reserved. | Built by Limkokwing students.</p>
+                <p>&copy; 2025 Na We Pharmacy System. All rights reserved. | Built by Limkokwing students.</p>
             </div>
         </div>
     </footer>

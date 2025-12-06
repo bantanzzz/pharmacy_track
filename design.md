@@ -1,4 +1,4 @@
-# Pharmaceutical Tracking System - System Design
+# Na We Pharmacy System - System Design
 
 ## System Architecture
 

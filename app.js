@@ -1,10 +1,10 @@
 
 const STORAGE_KEYS = {
-    USERS: 'pharma_users',
-    PATIENTS: 'pharma_patients',
-    MEDICATIONS: 'pharma_medications',
-    PRESCRIPTIONS: 'pharma_prescriptions',
-    CURRENT_USER: 'pharma_current_user'
+    USERS: 'nawe_users',
+    PATIENTS: 'nawe_patients',
+    MEDICATIONS: 'nawe_medications',
+    PRESCRIPTIONS: 'nawe_prescriptions',
+    CURRENT_USER: 'nawe_current_user'
 };
 
 // Initialize data if not exists
@@ -238,17 +238,12 @@ function showSection(sectionName) {
 function showLogin() {
     document.getElementById('login-section').classList.remove('hidden');
     document.getElementById('main-content').classList.add('hidden');
-    const navLinks = document.getElementById('nav-links');
-    navLinks.classList.add('hidden');
-    navLinks.classList.remove('flex');
+    closeMobileMenu(); // Close mobile menu when logging out
 }
 
 function showMain() {
     document.getElementById('login-section').classList.add('hidden');
     document.getElementById('main-content').classList.remove('hidden');
-    const navLinks = document.getElementById('nav-links');
-    navLinks.classList.remove('hidden');
-    navLinks.classList.add('flex');
     showSection('dashboard');
     updateDashboard();
 }
@@ -260,6 +255,17 @@ function showModal(content) {
 
 function hideModal() {
     document.getElementById('modal').classList.add('hidden');
+}
+
+// Mobile menu functions
+function toggleMobileMenu() {
+    const mobileMenu = document.getElementById('mobile-menu');
+    mobileMenu.classList.toggle('hidden');
+}
+
+function closeMobileMenu() {
+    const mobileMenu = document.getElementById('mobile-menu');
+    mobileMenu.classList.add('hidden');
 }
 
 // Dashboard
@@ -548,6 +554,12 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('Invalid credentials');
         }
     });
+
+    // Hamburger menu
+    const hamburgerBtn = document.getElementById('hamburger-btn');
+    if (hamburgerBtn) {
+        hamburgerBtn.addEventListener('click', toggleMobileMenu);
+    }
 
 });
 

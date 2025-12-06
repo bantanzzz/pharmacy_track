@@ -1,4 +1,4 @@
-# Pharmaceutical Tracking System - Requirements Analysis
+# Na We Pharmacy System - Requirements Analysis
 
 ## Problem Statement
 Pharmacies face challenges in managing medication inventory, tracking prescriptions, and ensuring patient safety. Manual tracking leads to errors, stockouts, and regulatory compliance issues. A digital system is needed to automate these processes.

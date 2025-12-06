@@ -6,6 +6,27 @@
     <title>Na We Pharmacy System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio,line-clamp"></script>
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js';
+        import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, query, where } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js';
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js';
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDEBKxe5LlHTPs_OK5aPxtEnzbz-liGwc8",
+            authDomain: "pha-track.firebaseapp.com",
+            projectId: "pha-track",
+            storageBucket: "pha-track.firebasestorage.app",
+            messagingSenderId: "1022168675672",
+            appId: "1:1022168675672:web:3030a42b909956f115612d"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        window.db = getFirestore(app);
+        window.auth = getAuth(app);
+    </script>
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-indigo-100">
     <div id="app" class="min-h-screen">
@@ -79,8 +100,8 @@
                     </div>
                     <form id="login-form">
                         <div class="mb-4">
-                            <label class="block text-gray-700 font-medium mb-2">Username</label>
-                            <input type="text" id="username" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200" placeholder="Enter username" required>
+                            <label class="block text-gray-700 font-medium mb-2">Email</label>
+                            <input type="email" id="email" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200" placeholder="Enter email" required>
                         </div>
                         <div class="mb-6">
                             <label class="block text-gray-700 font-medium mb-2">Password</label>
@@ -92,8 +113,10 @@
                     </form>
                     <div class="mt-6 text-center text-sm text-gray-600">
                         <p>Demo Credentials:</p>
-                        <p><strong>Admin:</strong> admin / admin123</p>
-                        <p><strong>Pharmacist:</strong> pharmacist / pharm123</p>
+                        <p><strong>Admin:</strong> admin@nawe.com / admin123</p>
+                        <p><strong>Pharmacist:</strong> pharmacist@nawe.com / pharm123</p>
+                        <p><strong>Patients:</strong> [Created automatically when adding patients]</p>
+                        <button onclick="resetData()" class="mt-2 px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600">Reset Demo Data</button>
                     </div>
                 </div>
             </div>

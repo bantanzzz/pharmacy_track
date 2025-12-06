@@ -1,97 +1,82 @@
 
-const STORAGE_KEYS = {
-    USERS: 'nawe_users',
-    PATIENTS: 'nawe_patients',
-    MEDICATIONS: 'nawe_medications',
-    PRESCRIPTIONS: 'nawe_prescriptions',
-    CURRENT_USER: 'nawe_current_user'
+// Firebase collections
+const COLLECTIONS = {
+    USERS: 'users',
+    PATIENTS: 'patients',
+    MEDICATIONS: 'medications',
+    PRESCRIPTIONS: 'prescriptions'
 };
 
-// Initialize data if not exists
-function initializeData() {
-    if (!localStorage.getItem(STORAGE_KEYS.USERS)) {
-        const defaultUsers = [
+// Initialize demo data in Firebase
+async function initializeData() {
+    try {
+        // Check if data already exists
+        const users = await getData(COLLECTIONS.USERS);
+        if (users.length > 0) return; // Data already initialized
+
+        // Create demo users in Firebase Auth and Firestore
+        const demoUsers = [
             {
-                id: 1,
-                username: 'admin',
-                password: hashPassword('admin123'),
+                email: 'admin@nawe.com',
+                password: 'admin123',
                 role: 'admin',
-                name: 'Administrator',
-                email: 'admin@nawe.com'
+                name: 'Administrator'
             },
             {
-                id: 2,
-                username: 'pharmacist',
-                password: hashPassword('pharm123'),
+                email: 'pharmacist@nawe.com',
+                password: 'pharm123',
                 role: 'pharmacist',
-                name: 'John Pharmacist',
-                email: 'john@nawe.com'
+                name: 'John Pharmacist'
             },
             {
-                id: 3,
-                username: 'sarahjohnson',
-                password: hashPassword('123johnson'),
-                role: 'patient',
-                name: 'Sarah Johnson',
                 email: 'sarah.j@email.com',
-                patientId: 1 // Link to patient record
+                password: '123johnson',
+                role: 'patient',
+                name: 'Sarah Johnson'
             },
             {
-                id: 4,
-                username: 'michaelchen',
-                password: hashPassword('123chen'),
-                role: 'patient',
-                name: 'Michael Chen',
                 email: 'm.chen@email.com',
-                patientId: 2 // Link to patient record
-            },
-            {
-                id: 5,
-                username: 'emilydavis',
-                password: hashPassword('123davis'),
+                password: '123chen',
                 role: 'patient',
-                name: 'Emily Davis',
+                name: 'Michael Chen'
+            },
+            {
                 email: 'emily.davis@email.com',
-                patientId: 3 // Link to patient record
+                password: '123davis',
+                role: 'patient',
+                name: 'Emily Davis'
             }
         ];
-        localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(defaultUsers));
-    }
 
-    if (!localStorage.getItem(STORAGE_KEYS.PATIENTS)) {
-        const samplePatients = [
-            {
-                id: 1,
-                name: 'Sarah Johnson',
-                dob: '1985-03-15',
-                address: '32 Aberdeen Road, Freetown',
-                phone: '+232 76 123 456',
-                email: 'sarah.j@email.com'
-            },
-            {
-                id: 2,
-                name: 'Michael Chen',
-                dob: '1992-07-22',
-                address: '15 Kissy Street, Freetown',
-                phone: '+232 77 234 567',
-                email: 'm.chen@email.com'
-            },
-            {
-                id: 3,
-                name: 'Emily Davis',
-                dob: '1978-11-08',
-                address: '8 Wilkinson Road, Freetown',
-                phone: '+232 78 345 678',
-                email: 'emily.davis@email.com'
+        // Create auth users and store profile data
+        for (const userData of demoUsers) {
+            try {
+                const userCredential = await createUserWithEmailAndPassword(window.auth, userData.email, userData.password);
+                const uid = userCredential.user.uid;
+
+                // Store user profile in Firestore
+                await setDoc(doc(window.db, COLLECTIONS.USERS, uid), {
+                    email: userData.email,
+                    role: userData.role,
+                    name: userData.name,
+                    createdAt: new Date()
+                });
+
+                // For patients, create patient records
+                if (userData.role === 'patient') {
+                    const patientData = getPatientData(userData.name);
+                    const patientDoc = await addData(COLLECTIONS.PATIENTS, patientData);
+                    // Update user with patientId
+                    await updateData(COLLECTIONS.USERS, uid, { patientId: patientDoc.id });
+                }
+            } catch (error) {
+                console.error('Error creating user:', userData.email, error);
             }
-        ];
-        localStorage.setItem(STORAGE_KEYS.PATIENTS, JSON.stringify(samplePatients));
-    }
+        }
 
-    if (!localStorage.getItem(STORAGE_KEYS.MEDICATIONS)) {
-        const sampleMedications = [
+        // Add medications
+        const medications = [
             {
-                id: 1,
                 name: 'Amoxicillin 500mg',
                 description: 'Antibiotic for bacterial infections',
                 category: 'Antibiotics',
@@ -99,7 +84,6 @@ function initializeData() {
                 expiration: '2025-06-15'
             },
             {
-                id: 2,
                 name: 'Lisinopril 10mg',
                 description: 'ACE inhibitor for hypertension',
                 category: 'Cardiovascular',
@@ -107,7 +91,6 @@ function initializeData() {
                 expiration: '2025-08-20'
             },
             {
-                id: 3,
                 name: 'Metformin 500mg',
                 description: 'Oral diabetes medicine',
                 category: 'Endocrine',
@@ -115,7 +98,6 @@ function initializeData() {
                 expiration: '2025-12-01'
             },
             {
-                id: 4,
                 name: 'Ibuprofen 200mg',
                 description: 'NSAID for pain and inflammation',
                 category: 'Pain Relief',
@@ -123,7 +105,6 @@ function initializeData() {
                 expiration: '2025-03-10'
             },
             {
-                id: 5,
                 name: 'Omeprazole 20mg',
                 description: 'Proton pump inhibitor for acid reflux',
                 category: 'Gastrointestinal',
@@ -131,7 +112,6 @@ function initializeData() {
                 expiration: '2025-09-15'
             },
             {
-                id: 6,
                 name: 'Atorvastatin 20mg',
                 description: 'Statin for cholesterol management',
                 category: 'Cardiovascular',
@@ -139,108 +119,154 @@ function initializeData() {
                 expiration: '2025-11-30'
             }
         ];
-        localStorage.setItem(STORAGE_KEYS.MEDICATIONS, JSON.stringify(sampleMedications));
-    }
 
-    if (!localStorage.getItem(STORAGE_KEYS.PRESCRIPTIONS)) {
-        const samplePrescriptions = [
-            {
-                id: 1,
-                patientId: 1,
-                items: [
-                    { medicationId: 1, quantity: 30 },
-                    { medicationId: 5, quantity: 14 }
-                ],
-                instructions: 'Take Amoxicillin 3 times daily with food. Take Omeprazole once daily.',
-                date: '2024-12-01',
-                status: 'filled'
-            },
-            {
-                id: 2,
-                patientId: 2,
-                items: [
-                    { medicationId: 2, quantity: 30 },
-                    { medicationId: 6, quantity: 30 }
-                ],
-                instructions: 'Take once daily in the morning.',
-                date: '2024-12-02',
-                status: 'active'
-            },
-            {
-                id: 3,
-                patientId: 3,
-                items: [
-                    { medicationId: 3, quantity: 60 }
-                ],
-                instructions: 'Take twice daily with meals.',
-                date: '2024-12-03',
-                status: 'active'
+        for (const med of medications) {
+            await addData(COLLECTIONS.MEDICATIONS, med);
+        }
+
+        // Add prescriptions (will be linked to patients after they're created)
+        setTimeout(async () => {
+            const patients = await getData(COLLECTIONS.PATIENTS);
+            if (patients.length >= 3) {
+                const prescriptions = [
+                    {
+                        patientId: patients[0].id,
+                        items: [
+                            { medicationId: 'med1', quantity: 30 },
+                            { medicationId: 'med5', quantity: 14 }
+                        ],
+                        instructions: 'Take Amoxicillin 3 times daily with food. Take Omeprazole once daily.',
+                        date: '2024-12-01',
+                        status: 'filled'
+                    },
+                    {
+                        patientId: patients[1].id,
+                        items: [
+                            { medicationId: 'med2', quantity: 30 },
+                            { medicationId: 'med6', quantity: 30 }
+                        ],
+                        instructions: 'Take once daily in the morning.',
+                        date: '2024-12-02',
+                        status: 'active'
+                    },
+                    {
+                        patientId: patients[2].id,
+                        items: [
+                            { medicationId: 'med3', quantity: 60 }
+                        ],
+                        instructions: 'Take twice daily with meals.',
+                        date: '2024-12-03',
+                        status: 'active'
+                    }
+                ];
+
+                for (const presc of prescriptions) {
+                    await addData(COLLECTIONS.PRESCRIPTIONS, presc);
+                }
             }
-        ];
-        localStorage.setItem(STORAGE_KEYS.PRESCRIPTIONS, JSON.stringify(samplePrescriptions));
+        }, 2000);
+
+    } catch (error) {
+        console.error('Error initializing data:', error);
     }
 }
 
-// Simple password hashing (not secure for production)
-function hashPassword(password) {
-    return btoa(password); // Base64 encoding for demo
+function getPatientData(name) {
+    const patientTemplates = {
+        'Sarah Johnson': {
+            name: 'Sarah Johnson',
+            dob: '1985-03-15',
+            address: '32 Aberdeen Road, Freetown',
+            phone: '+232 76 123 456',
+            email: 'sarah.j@email.com'
+        },
+        'Michael Chen': {
+            name: 'Michael Chen',
+            dob: '1992-07-22',
+            address: '15 Kissy Street, Freetown',
+            phone: '+232 77 234 567',
+            email: 'm.chen@email.com'
+        },
+        'Emily Davis': {
+            name: 'Emily Davis',
+            dob: '1978-11-08',
+            address: '8 Wilkinson Road, Freetown',
+            phone: '+232 78 345 678',
+            email: 'emily.davis@email.com'
+        }
+    };
+    return patientTemplates[name] || {};
 }
 
-// Authentication
-function login(username, password) {
-    const users = getData(STORAGE_KEYS.USERS);
-    const user = users.find(u => u.username === username && u.password === hashPassword(password));
-    if (user) {
-        localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
-        return true;
+// Authentication (Firebase)
+async function login(email, password) {
+    try {
+        const userCredential = await signInWithEmailAndPassword(window.auth, email, password);
+        return userCredential.user;
+    } catch (error) {
+        console.error('Login error:', error);
+        throw error;
     }
-    return false;
 }
 
 function logout() {
-    localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
-    showLogin();
+    signOut(window.auth).then(() => {
+        showLogin();
+    }).catch((error) => {
+        console.error('Logout error:', error);
+    });
 }
 
 function getCurrentUser() {
-    const user = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
-    return user ? JSON.parse(user) : null;
+    return window.auth.currentUser;
 }
 
 function isLoggedIn() {
-    return getCurrentUser() !== null;
+    return window.auth.currentUser !== null;
 }
 
-// Data management functions
-function getData(key) {
-    return JSON.parse(localStorage.getItem(key)) || [];
-}
-
-function saveData(key, data) {
-    localStorage.setItem(key, JSON.stringify(data));
-}
-
-function addData(key, item) {
-    const data = getData(key);
-    item.id = Date.now(); // Simple ID generation
-    data.push(item);
-    saveData(key, data);
-    return item;
-}
-
-function updateData(key, id, updates) {
-    const data = getData(key);
-    const index = data.findIndex(item => item.id == id);
-    if (index !== -1) {
-        data[index] = { ...data[index], ...updates };
-        saveData(key, data);
+// Data management functions (Firebase)
+async function getData(collectionName) {
+    try {
+        const querySnapshot = await getDocs(collection(window.db, collectionName));
+        const data = [];
+        querySnapshot.forEach((doc) => {
+            data.push({ id: doc.id, ...doc.data() });
+        });
+        return data;
+    } catch (error) {
+        console.error('Error getting data:', error);
+        return [];
     }
 }
 
-function deleteData(key, id) {
-    const data = getData(key);
-    const filtered = data.filter(item => item.id != id);
-    saveData(key, filtered);
+async function addData(collectionName, item) {
+    try {
+        const docRef = await addDoc(collection(window.db, collectionName), item);
+        return { id: docRef.id, ...item };
+    } catch (error) {
+        console.error('Error adding data:', error);
+        throw error;
+    }
+}
+
+async function updateData(collectionName, id, updates) {
+    try {
+        const docRef = doc(window.db, collectionName, id);
+        await updateDoc(docRef, updates);
+    } catch (error) {
+        console.error('Error updating data:', error);
+        throw error;
+    }
+}
+
+async function deleteData(collectionName, id) {
+    try {
+        await deleteDoc(doc(window.db, collectionName, id));
+    } catch (error) {
+        console.error('Error deleting data:', error);
+        throw error;
+    }
 }
 
 // UI functions
@@ -257,9 +283,15 @@ function showSection(sectionName) {
     }
 
     // Render content based on section
-    if (sectionName === 'inventory') renderInventory();
-    if (sectionName === 'prescriptions') renderPrescriptions();
-    if (sectionName === 'patients') renderPatients();
+    if (sectionName === 'inventory') {
+        renderInventory();
+    }
+    if (sectionName === 'prescriptions') {
+        renderPrescriptions();
+    }
+    if (sectionName === 'patients') {
+        renderPatients();
+    }
     if (sectionName === 'reports') {
         generateInventoryReport();
         generatePrescriptionReport();
@@ -272,18 +304,21 @@ function showLogin() {
     closeMobileMenu(); // Close mobile menu when logging out
 }
 
-function showMain() {
+async function showMain() {
     document.getElementById('login-section').classList.add('hidden');
     document.getElementById('main-content').classList.remove('hidden');
 
     const user = getCurrentUser();
-    if (user.role === 'patient') {
+    const userData = await getData(COLLECTIONS.USERS);
+    const currentUserData = userData.find(u => u.id === user.uid);
+
+    if (currentUserData && currentUserData.role === 'patient') {
         showPatientDashboard();
     } else {
         showSection('dashboard');
-        updateDashboard();
+        await updateDashboard();
     }
-    updateNavigation();
+    await updateNavigation();
 }
 
 function showModal(content) {
@@ -307,50 +342,55 @@ function closeMobileMenu() {
 }
 
 // Role-based navigation
-function updateNavigation() {
+async function updateNavigation() {
     const user = getCurrentUser();
     const navLinks = document.getElementById('nav-links');
     const mobileMenu = document.getElementById('mobile-menu');
 
-    if (user.role === 'patient') {
-        navLinks.innerHTML = `
-            <a href="#" onclick="showPatientDashboard()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">My Records</a>
-            <a href="#" onclick="logout()" class="bg-red-500 hover:bg-red-600 px-3 py-2 rounded transition duration-200">Logout</a>
-        `;
-        mobileMenu.innerHTML = `
-            <div class="flex flex-col space-y-2 px-4">
-                <a href="#" onclick="showPatientDashboard(); closeMobileMenu()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">My Records</a>
-                <a href="#" onclick="logout(); closeMobileMenu()" class="bg-red-500 hover:bg-red-600 px-3 py-2 rounded transition duration-200">Logout</a>
-            </div>
-        `;
-    } else {
-        // Admin/Pharmacist navigation
-        navLinks.innerHTML = `
-            <a href="#" onclick="showSection('dashboard')" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Dashboard</a>
-            <a href="#" onclick="showSection('inventory')" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Inventory</a>
-            <a href="#" onclick="showSection('prescriptions')" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Prescriptions</a>
-            <a href="#" onclick="showSection('patients')" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Patients</a>
-            <a href="#" onclick="showSection('reports')" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Reports</a>
-            <a href="#" onclick="logout()" class="bg-red-500 hover:bg-red-600 px-3 py-2 rounded transition duration-200">Logout</a>
-        `;
-        mobileMenu.innerHTML = `
-            <div class="flex flex-col space-y-2 px-4">
-                <a href="#" onclick="showSection('dashboard'); closeMobileMenu()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Dashboard</a>
-                <a href="#" onclick="showSection('inventory'); closeMobileMenu()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Inventory</a>
-                <a href="#" onclick="showSection('prescriptions'); closeMobileMenu()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Prescriptions</a>
-                <a href="#" onclick="showSection('patients'); closeMobileMenu()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Patients</a>
-                <a href="#" onclick="showSection('reports'); closeMobileMenu()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Reports</a>
-                <a href="#" onclick="logout(); closeMobileMenu()" class="bg-red-500 hover:bg-red-600 px-3 py-2 rounded transition duration-200">Logout</a>
-            </div>
-        `;
+    if (user) {
+        const userData = await getData(COLLECTIONS.USERS);
+        const currentUserData = userData.find(u => u.id === user.uid);
+
+        if (currentUserData && currentUserData.role === 'patient') {
+            navLinks.innerHTML = `
+                <a href="#" onclick="showPatientDashboard()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">My Records</a>
+                <a href="#" onclick="logout()" class="bg-red-500 hover:bg-red-600 px-3 py-2 rounded transition duration-200">Logout</a>
+            `;
+            mobileMenu.innerHTML = `
+                <div class="flex flex-col space-y-2 px-4">
+                    <a href="#" onclick="showPatientDashboard(); closeMobileMenu()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">My Records</a>
+                    <a href="#" onclick="logout(); closeMobileMenu()" class="bg-red-500 hover:bg-red-600 px-3 py-2 rounded transition duration-200">Logout</a>
+                </div>
+            `;
+        } else {
+            // Admin/Pharmacist navigation
+            navLinks.innerHTML = `
+                <a href="#" onclick="showSection('dashboard')" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Dashboard</a>
+                <a href="#" onclick="showSection('inventory')" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Inventory</a>
+                <a href="#" onclick="showSection('prescriptions')" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Prescriptions</a>
+                <a href="#" onclick="showSection('patients')" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Patients</a>
+                <a href="#" onclick="showSection('reports')" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Reports</a>
+                <a href="#" onclick="logout()" class="bg-red-500 hover:bg-red-600 px-3 py-2 rounded transition duration-200">Logout</a>
+            `;
+            mobileMenu.innerHTML = `
+                <div class="flex flex-col space-y-2 px-4">
+                    <a href="#" onclick="showSection('dashboard'); closeMobileMenu()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Dashboard</a>
+                    <a href="#" onclick="showSection('inventory'); closeMobileMenu()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Inventory</a>
+                    <a href="#" onclick="showSection('prescriptions'); closeMobileMenu()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Prescriptions</a>
+                    <a href="#" onclick="showSection('patients'); closeMobileMenu()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Patients</a>
+                    <a href="#" onclick="showSection('reports'); closeMobileMenu()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Reports</a>
+                    <a href="#" onclick="logout(); closeMobileMenu()" class="bg-red-500 hover:bg-red-600 px-3 py-2 rounded transition duration-200">Logout</a>
+                </div>
+            `;
+        }
     }
 }
 
 // Dashboard
-function updateDashboard() {
-    const meds = getData(STORAGE_KEYS.MEDICATIONS);
-    const prescriptions = getData(STORAGE_KEYS.PRESCRIPTIONS);
-    const patients = getData(STORAGE_KEYS.PATIENTS);
+async function updateDashboard() {
+    const meds = await getData(COLLECTIONS.MEDICATIONS);
+    const prescriptions = await getData(COLLECTIONS.PRESCRIPTIONS);
+    const patients = await getData(COLLECTIONS.PATIENTS);
     const lowStock = meds.filter(m => m.stock < 10).length;
 
     document.getElementById('total-meds').textContent = meds.length;
@@ -360,8 +400,8 @@ function updateDashboard() {
 }
 
 // Rendering functions
-function renderInventory() {
-    const meds = getData(STORAGE_KEYS.MEDICATIONS);
+async function renderInventory() {
+    const meds = await getData(COLLECTIONS.MEDICATIONS);
     const container = document.getElementById('inventory-list');
 
     if (meds.length === 0) {
@@ -392,8 +432,8 @@ function renderInventory() {
                 <td class="px-4 py-2 ${stockClass}">${med.stock}</td>
                 <td class="px-4 py-2">${med.expiration}</td>
                 <td class="px-4 py-2">
-                    <button onclick="editMedication(${med.id})" class="text-blue-600 mr-2">Edit</button>
-                    <button onclick="deleteMedication(${med.id})" class="text-red-600">Delete</button>
+                    <button onclick="editMedication('${med.id}')" class="text-blue-600 mr-2">Edit</button>
+                    <button onclick="deleteMedication('${med.id}')" class="text-red-600">Delete</button>
                 </td>
             </tr>
         `;
@@ -403,8 +443,8 @@ function renderInventory() {
     container.innerHTML = html;
 }
 
-function renderPrescriptions() {
-    const prescriptions = getData(STORAGE_KEYS.PRESCRIPTIONS);
+async function renderPrescriptions() {
+    const prescriptions = await getData(COLLECTIONS.PRESCRIPTIONS);
     const container = document.getElementById('prescriptions-list');
 
     if (prescriptions.length === 0) {
@@ -425,8 +465,9 @@ function renderPrescriptions() {
             <tbody>
     `;
 
+    const patients = await getData(COLLECTIONS.PATIENTS);
     prescriptions.forEach(prescription => {
-        const patient = getData(STORAGE_KEYS.PATIENTS).find(p => p.id == prescription.patientId);
+        const patient = patients.find(p => p.id == prescription.patientId);
         const patientName = patient ? patient.name : 'Unknown';
         html += `
             <tr class="border-b">
@@ -434,9 +475,9 @@ function renderPrescriptions() {
                 <td class="px-4 py-2">${prescription.date}</td>
                 <td class="px-4 py-2">${prescription.status}</td>
                 <td class="px-4 py-2">
-                    <button onclick="viewPrescription(${prescription.id})" class="text-blue-600 mr-2">View</button>
-                    <button onclick="editPrescription(${prescription.id})" class="text-green-600 mr-2">Edit</button>
-                    ${prescription.status === 'active' ? `<button onclick="fillPrescription(${prescription.id})" class="text-purple-600">Fill</button>` : ''}
+                    <button onclick="viewPrescription('${prescription.id}')" class="text-blue-600 mr-2">View</button>
+                    <button onclick="editPrescription('${prescription.id}')" class="text-green-600 mr-2">Edit</button>
+                    ${prescription.status === 'active' ? `<button onclick="fillPrescription('${prescription.id}')" class="text-purple-600">Fill</button>` : ''}
                 </td>
             </tr>
         `;
@@ -446,8 +487,8 @@ function renderPrescriptions() {
     container.innerHTML = html;
 }
 
-function renderPatients() {
-    const patients = getData(STORAGE_KEYS.PATIENTS);
+async function renderPatients() {
+    const patients = await getData(COLLECTIONS.PATIENTS);
     const container = document.getElementById('patients-list');
 
     if (patients.length === 0) {
@@ -475,8 +516,8 @@ function renderPatients() {
                 <td class="px-4 py-2">${patient.dob}</td>
                 <td class="px-4 py-2">${patient.phone}</td>
                 <td class="px-4 py-2">
-                    <button onclick="editPatient(${patient.id})" class="text-blue-600 mr-2">Edit</button>
-                    <button onclick="deletePatient(${patient.id})" class="text-red-600">Delete</button>
+                    <button onclick="editPatient('${patient.id}')" class="text-blue-600 mr-2">Edit</button>
+                    <button onclick="deletePatient('${patient.id}')" class="text-red-600">Delete</button>
                 </td>
             </tr>
         `;
@@ -487,8 +528,8 @@ function renderPatients() {
 }
 
 // Action functions
-function editMedication(id) {
-    const meds = getData(STORAGE_KEYS.MEDICATIONS);
+async function editMedication(id) {
+    const meds = await getData(COLLECTIONS.MEDICATIONS);
     const med = meds.find(m => m.id == id);
     if (!med) return;
 
@@ -523,7 +564,7 @@ function editMedication(id) {
     `;
     showModal(form);
 
-    document.getElementById('edit-med-form').addEventListener('submit', function(e) {
+    document.getElementById('edit-med-form').addEventListener('submit', async function(e) {
         e.preventDefault();
         const formData = new FormData(e.target);
         const updates = {
@@ -533,38 +574,41 @@ function editMedication(id) {
             stock: parseInt(formData.get('stock')),
             expiration: formData.get('expiration')
         };
-        updateData(STORAGE_KEYS.MEDICATIONS, id, updates);
+        await updateData(COLLECTIONS.MEDICATIONS, id, updates);
         hideModal();
-        updateDashboard();
-        renderInventory();
+        await updateDashboard();
+        await renderInventory();
     });
 }
 
-function deleteMedication(id) {
+async function deleteMedication(id) {
     if (confirm('Are you sure you want to delete this medication?')) {
-        deleteData(STORAGE_KEYS.MEDICATIONS, id);
-        renderInventory();
-        updateDashboard();
+        await deleteData(COLLECTIONS.MEDICATIONS, id);
+        await renderInventory();
+        await updateDashboard();
     }
 }
 
 // Patient dashboard
-function showPatientDashboard() {
+async function showPatientDashboard() {
     // Hide all sections
     document.querySelectorAll('.section').forEach(section => {
         section.classList.add('hidden');
     });
 
     const user = getCurrentUser();
+    const userData = await getData(COLLECTIONS.USERS);
+    const currentUserData = userData.find(u => u.id === user.uid);
 
     // Check if user has patientId
-    if (!user.patientId) {
+    if (!currentUserData || !currentUserData.patientId) {
         alert('Your account is not properly configured as a patient. Please contact the administrator.');
         logout();
         return;
     }
 
-    const patient = getData(STORAGE_KEYS.PATIENTS).find(p => p.id == user.patientId);
+    const patients = await getData(COLLECTIONS.PATIENTS);
+    const patient = patients.find(p => p.id == currentUserData.patientId);
 
     // Check if patient record exists
     if (!patient) {
@@ -573,7 +617,8 @@ function showPatientDashboard() {
         return;
     }
 
-    const prescriptions = getData(STORAGE_KEYS.PRESCRIPTIONS).filter(pr => pr.patientId == user.patientId);
+    const prescriptions = await getData(COLLECTIONS.PRESCRIPTIONS);
+    const userPrescriptions = prescriptions.filter(pr => pr.patientId == currentUserData.patientId);
 
     const container = document.getElementById('main-content');
 
@@ -601,15 +646,16 @@ function showPatientDashboard() {
                 <h3 class="text-xl font-bold text-gray-800 mb-4">My Prescriptions</h3>
     `;
 
-    if (prescriptions.length === 0) {
+    if (userPrescriptions.length === 0) {
         html += '<p class="text-gray-500">No prescriptions found.</p>';
     } else {
         html += `
             <div class="space-y-4">
         `;
-        prescriptions.forEach(prescription => {
+        const medications = await getData(COLLECTIONS.MEDICATIONS);
+        userPrescriptions.forEach(prescription => {
             const itemsHtml = prescription.items.map(item => {
-                const med = getData(STORAGE_KEYS.MEDICATIONS).find(m => m.id == item.medicationId);
+                const med = medications.find(m => m.id == item.medicationId);
                 return med ? `${med.name} (${item.quantity})` : 'Unknown medication';
             }).join(', ');
 
@@ -640,16 +686,18 @@ function showPatientDashboard() {
     dashboardSection.classList.remove('hidden');
 }
 
-function viewPrescription(id) {
-    const prescriptions = getData(STORAGE_KEYS.PRESCRIPTIONS);
+async function viewPrescription(id) {
+    const prescriptions = await getData(COLLECTIONS.PRESCRIPTIONS);
     const prescription = prescriptions.find(p => p.id == id);
     if (!prescription) return;
 
-    const patient = getData(STORAGE_KEYS.PATIENTS).find(p => p.id == prescription.patientId);
+    const patients = await getData(COLLECTIONS.PATIENTS);
+    const patient = patients.find(p => p.id == prescription.patientId);
     const patientName = patient ? patient.name : 'Unknown';
 
+    const medications = await getData(COLLECTIONS.MEDICATIONS);
     let itemsHtml = prescription.items.map(item => {
-        const med = getData(STORAGE_KEYS.MEDICATIONS).find(m => m.id == item.medicationId);
+        const med = medications.find(m => m.id == item.medicationId);
         return med ? `<li class="mb-2 p-2 bg-gray-50 rounded">${med.name} - Quantity: ${item.quantity}</li>` : '<li>Unknown medication</li>';
     }).join('');
 
@@ -675,13 +723,13 @@ function viewPrescription(id) {
     showModal(modalContent);
 }
 
-function editPrescription(id) {
-    const prescriptions = getData(STORAGE_KEYS.PRESCRIPTIONS);
+async function editPrescription(id) {
+    const prescriptions = await getData(COLLECTIONS.PRESCRIPTIONS);
     const prescription = prescriptions.find(p => p.id == id);
     if (!prescription) return;
 
-    const patients = getData(STORAGE_KEYS.PATIENTS);
-    const medications = getData(STORAGE_KEYS.MEDICATIONS);
+    const patients = await getData(COLLECTIONS.PATIENTS);
+    const medications = await getData(COLLECTIONS.MEDICATIONS);
 
     let patientOptions = patients.map(p => `<option value="${p.id}" ${p.id == prescription.patientId ? 'selected' : ''}>${p.name}</option>`).join('');
 
@@ -730,7 +778,7 @@ function editPrescription(id) {
     `;
     showModal(form);
 
-    document.getElementById('edit-prescription-form').addEventListener('submit', function(e) {
+    document.getElementById('edit-prescription-form').addEventListener('submit', async function(e) {
         e.preventDefault();
         const formData = new FormData(e.target);
         const selectedMeds = [];
@@ -748,24 +796,24 @@ function editPrescription(id) {
         }
 
         const updates = {
-            patientId: parseInt(formData.get('patientId')),
+            patientId: formData.get('patientId'),
             items: selectedMeds,
             instructions: formData.get('instructions'),
             status: formData.get('status')
         };
-        updateData(STORAGE_KEYS.PRESCRIPTIONS, id, updates);
+        await updateData(COLLECTIONS.PRESCRIPTIONS, id, updates);
         hideModal();
-        updateDashboard();
-        renderPrescriptions();
+        await updateDashboard();
+        await renderPrescriptions();
     });
 }
 
-function fillPrescription(id) {
-    const prescriptions = getData(STORAGE_KEYS.PRESCRIPTIONS);
+async function fillPrescription(id) {
+    const prescriptions = await getData(COLLECTIONS.PRESCRIPTIONS);
     const prescription = prescriptions.find(p => p.id == id);
     if (!prescription || prescription.status !== 'active') return;
 
-    const medications = getData(STORAGE_KEYS.MEDICATIONS);
+    const medications = await getData(COLLECTIONS.MEDICATIONS);
     let canFill = true;
     let insufficientStock = [];
 
@@ -784,24 +832,24 @@ function fillPrescription(id) {
     }
 
     // Update stock levels
-    prescription.items.forEach(item => {
+    for (const item of prescription.items) {
         const med = medications.find(m => m.id == item.medicationId);
         if (med) {
-            updateData(STORAGE_KEYS.MEDICATIONS, med.id, { stock: med.stock - item.quantity });
+            await updateData(COLLECTIONS.MEDICATIONS, med.id, { stock: med.stock - item.quantity });
         }
-    });
+    }
 
     // Update prescription status
-    updateData(STORAGE_KEYS.PRESCRIPTIONS, id, { status: 'filled' });
+    await updateData(COLLECTIONS.PRESCRIPTIONS, id, { status: 'filled' });
 
     // Re-render
-    renderPrescriptions();
-    updateDashboard();
+    await renderPrescriptions();
+    await updateDashboard();
     alert('Prescription filled successfully!');
 }
 
-function editPatient(id) {
-    const patients = getData(STORAGE_KEYS.PATIENTS);
+async function editPatient(id) {
+    const patients = await getData(COLLECTIONS.PATIENTS);
     const patient = patients.find(p => p.id == id);
     if (!patient) return;
 
@@ -836,7 +884,7 @@ function editPatient(id) {
     `;
     showModal(form);
 
-    document.getElementById('edit-patient-form').addEventListener('submit', function(e) {
+    document.getElementById('edit-patient-form').addEventListener('submit', async function(e) {
         e.preventDefault();
         const formData = new FormData(e.target);
         const updates = {
@@ -846,39 +894,57 @@ function editPatient(id) {
             phone: formData.get('phone'),
             email: formData.get('email')
         };
-        updateData(STORAGE_KEYS.PATIENTS, id, updates);
+        await updateData(COLLECTIONS.PATIENTS, id, updates);
         hideModal();
-        renderPatients();
+        await renderPatients();
     });
 }
 
-function deletePatient(id) {
+async function deletePatient(id) {
     if (confirm('Are you sure you want to delete this patient?')) {
-        deleteData(STORAGE_KEYS.PATIENTS, id);
-        renderPatients();
+        await deleteData(COLLECTIONS.PATIENTS, id);
+        await renderPatients();
+    }
+}
+
+// Reset demo data
+async function resetData() {
+    try {
+        // Note: In a production app, you might want to clear Firestore collections
+        // But for demo purposes, we'll just re-initialize
+        await initializeData();
+        alert('Demo data has been reset. You can now login with the demo credentials.');
+    } catch (error) {
+        console.error('Error resetting data:', error);
+        alert('Error resetting data: ' + error.message);
     }
 }
 
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
-    initializeData();
-
-    if (isLoggedIn()) {
-        showMain();
-    } else {
-        showLogin();
-    }
-
-    // Login form
-    document.getElementById('login-form').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
-
-        if (login(username, password)) {
+    // Firebase auth state listener
+    onAuthStateChanged(window.auth, async (user) => {
+        if (user) {
+            // User is signed in
+            await initializeData(); // Ensure data is initialized
             showMain();
         } else {
-            alert('Invalid credentials');
+            // User is signed out
+            showLogin();
+        }
+    });
+
+    // Login form
+    document.getElementById('login-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+
+        try {
+            await login(email, password);
+            // Auth state change will trigger showMain()
+        } catch (error) {
+            alert('Invalid credentials: ' + error.message);
         }
     });
 
@@ -923,7 +989,7 @@ function showAddMedForm() {
     `;
     showModal(form);
 
-    document.getElementById('add-med-form').addEventListener('submit', function(e) {
+    document.getElementById('add-med-form').addEventListener('submit', async function(e) {
         e.preventDefault();
         const formData = new FormData(e.target);
         const med = {
@@ -933,16 +999,16 @@ function showAddMedForm() {
             stock: parseInt(formData.get('stock')),
             expiration: formData.get('expiration')
         };
-        addData(STORAGE_KEYS.MEDICATIONS, med);
+        await addData(COLLECTIONS.MEDICATIONS, med);
         hideModal();
-        updateDashboard();
-        renderInventory();
+        await updateDashboard();
+        await renderInventory();
     });
 }
 
-function showAddPrescriptionForm() {
-    const patients = getData(STORAGE_KEYS.PATIENTS);
-    const medications = getData(STORAGE_KEYS.MEDICATIONS);
+async function showAddPrescriptionForm() {
+    const patients = await getData(COLLECTIONS.PATIENTS);
+    const medications = await getData(COLLECTIONS.MEDICATIONS);
 
     if (patients.length === 0) {
         alert('Please add patients first');
@@ -987,7 +1053,7 @@ function showAddPrescriptionForm() {
     `;
     showModal(form);
 
-    document.getElementById('add-prescription-form').addEventListener('submit', function(e) {
+    document.getElementById('add-prescription-form').addEventListener('submit', async function(e) {
         e.preventDefault();
         const formData = new FormData(e.target);
         const selectedMeds = [];
@@ -1005,16 +1071,16 @@ function showAddPrescriptionForm() {
         }
 
         const prescription = {
-            patientId: parseInt(formData.get('patientId')),
+            patientId: formData.get('patientId'),
             items: selectedMeds,
             instructions: formData.get('instructions'),
             date: new Date().toISOString().split('T')[0],
             status: 'active'
         };
-        addData(STORAGE_KEYS.PRESCRIPTIONS, prescription);
+        await addData(COLLECTIONS.PRESCRIPTIONS, prescription);
         hideModal();
-        updateDashboard();
-        renderPrescriptions();
+        await updateDashboard();
+        await renderPrescriptions();
     });
 }
 
@@ -1050,7 +1116,7 @@ function showAddPatientForm() {
     `;
     showModal(form);
 
-    document.getElementById('add-patient-form').addEventListener('submit', function(e) {
+    document.getElementById('add-patient-form').addEventListener('submit', async function(e) {
         e.preventDefault();
         const formData = new FormData(e.target);
         const patient = {
@@ -1060,7 +1126,7 @@ function showAddPatientForm() {
             phone: formData.get('phone'),
             email: formData.get('email')
         };
-        const newPatient = addData(STORAGE_KEYS.PATIENTS, patient);
+        const newPatient = await addData(COLLECTIONS.PATIENTS, patient);
 
         // Auto-create user account for the patient
         const nameParts = patient.name.toLowerCase().split(' ');
@@ -1068,19 +1134,29 @@ function showAddPatientForm() {
         const lastName = nameParts[nameParts.length - 1];
         const password = '123' + lastName;
 
-        const user = {
-            username: username,
-            password: hashPassword(password),
-            role: 'patient',
-            name: patient.name,
-            email: patient.email,
-            patientId: newPatient.id
-        };
-        addData(STORAGE_KEYS.USERS, user);
+        try {
+            // Create Firebase Auth user
+            const userCredential = await createUserWithEmailAndPassword(window.auth, patient.email, password);
+            const uid = userCredential.user.uid;
 
-        hideModal();
-        renderPatients();
-        alert(`Patient added successfully! Login credentials: ${username} / ${password}`);
+            // Store user profile in Firestore
+            await setDoc(doc(window.db, COLLECTIONS.USERS, uid), {
+                email: patient.email,
+                role: 'patient',
+                name: patient.name,
+                patientId: newPatient.id,
+                createdAt: new Date()
+            });
+
+            hideModal();
+            await renderPatients();
+            alert(`Patient added successfully! Login credentials: ${patient.email} / ${password}`);
+        } catch (error) {
+            console.error('Error creating patient user:', error);
+            alert('Patient record created but user account creation failed: ' + error.message);
+            hideModal();
+            await renderPatients();
+        }
     });
 }
 
@@ -1091,8 +1167,8 @@ function renderReports() {
     document.getElementById('prescription-report').innerHTML = '';
 }
 
-function generateInventoryReport() {
-    const meds = getData(STORAGE_KEYS.MEDICATIONS);
+async function generateInventoryReport() {
+    const meds = await getData(COLLECTIONS.MEDICATIONS);
     const lowStock = meds.filter(m => m.stock < 10);
     const expiringSoon = meds.filter(m => {
         const expDate = new Date(m.expiration);
@@ -1155,16 +1231,17 @@ function generateInventoryReport() {
     document.getElementById('inventory-report').innerHTML = report;
 }
 
-function generatePrescriptionReport() {
-    const prescriptions = getData(STORAGE_KEYS.PRESCRIPTIONS);
+async function generatePrescriptionReport() {
+    const prescriptions = await getData(COLLECTIONS.PRESCRIPTIONS);
     const activePrescriptions = prescriptions.filter(p => p.status === 'active');
     const filledPrescriptions = prescriptions.filter(p => p.status === 'filled');
 
     // Most prescribed medications
+    const medications = await getData(COLLECTIONS.MEDICATIONS);
     const medCounts = {};
     prescriptions.forEach(p => {
         p.items.forEach(item => {
-            const med = getData(STORAGE_KEYS.MEDICATIONS).find(m => m.id == item.medicationId);
+            const med = medications.find(m => m.id == item.medicationId);
             if (med) {
                 medCounts[med.name] = (medCounts[med.name] || 0) + item.quantity;
             }

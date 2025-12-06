@@ -13,7 +13,7 @@ async function login(email, password) {
     console.log('window.auth defined:', !!window.auth);
     try {
         console.log('Calling signInWithEmailAndPassword...');
-        const userCredential = await signInWithEmailAndPassword(window.auth, email, password);
+        const userCredential = await window.signInWithEmailAndPassword(window.auth, email, password);
         console.log('Login successful for user:', userCredential.user.email);
         return userCredential.user;
     } catch (error) {
@@ -27,7 +27,7 @@ async function login(email, password) {
 }
 
 function logout() {
-    signOut(window.auth).then(() => {
+    window.signOut(window.auth).then(() => {
         showLogin();
     }).catch((error) => {
         console.error('Logout error:', error);
@@ -69,7 +69,7 @@ async function initializeData() {
         for (const userData of demoUsers) {
             // Store user profile in Firestore with a known ID
             const userId = userData.email.split('@')[0] + '_user';
-            await setDoc(doc(window.db, COLLECTIONS.USERS, userId), {
+            await window.setDoc(window.doc(window.db, COLLECTIONS.USERS, userId), {
                 email: userData.email,
                 role: userData.role,
                 name: userData.name,
@@ -168,7 +168,7 @@ async function initializeData() {
 // Data management functions (Firebase)
 async function getData(collectionName) {
     try {
-        const querySnapshot = await getDocs(collection(window.db, collectionName));
+        const querySnapshot = await window.getDocs(window.collection(window.db, collectionName));
         const data = [];
         querySnapshot.forEach((doc) => {
             data.push({ id: doc.id, ...doc.data() });
@@ -182,7 +182,7 @@ async function getData(collectionName) {
 
 async function addData(collectionName, item) {
     try {
-        const docRef = await addDoc(collection(window.db, collectionName), item);
+        const docRef = await window.addDoc(window.collection(window.db, collectionName), item);
         return { id: docRef.id, ...item };
     } catch (error) {
         console.error('Error adding data:', error);
@@ -192,8 +192,8 @@ async function addData(collectionName, item) {
 
 async function updateData(collectionName, id, updates) {
     try {
-        const docRef = doc(window.db, collectionName, id);
-        await updateDoc(docRef, updates);
+        const docRef = window.doc(window.db, collectionName, id);
+        await window.updateDoc(docRef, updates);
     } catch (error) {
         console.error('Error updating data:', error);
         throw error;
@@ -202,7 +202,7 @@ async function updateData(collectionName, id, updates) {
 
 async function deleteData(collectionName, id) {
     try {
-        await deleteDoc(doc(window.db, collectionName, id));
+        await window.deleteDoc(window.doc(window.db, collectionName, id));
     } catch (error) {
         console.error('Error deleting data:', error);
         throw error;
@@ -255,7 +255,7 @@ async function showMain() {
     try {
         console.log('Fetching user data for:', user.email);
         if (user.email === 'pharmacist@nawe.com') {
-            const userDoc = await getDoc(doc(window.db, COLLECTIONS.USERS, 'pharmacist_user'));
+            const userDoc = await window.getDoc(window.doc(window.db, COLLECTIONS.USERS, 'pharmacist_user'));
             userData = userDoc.data();
             console.log('User data retrieved:', userData);
         } else {
@@ -265,7 +265,7 @@ async function showMain() {
             console.log('User data from patients:', userData);
         }
     } catch (error) {
-        console.error('Error getting user data in showMain:', error);
+        console.error('Error getting user data in showPatientDashboard:', error);
         userData = null;
     }
 
@@ -319,7 +319,7 @@ async function updateNavigation() {
         let userData = null;
         try {
             if (user.email === 'pharmacist@nawe.com') {
-                const userDoc = await getDoc(doc(window.db, COLLECTIONS.USERS, 'pharmacist_user'));
+                const userDoc = await window.getDoc(window.doc(window.db, COLLECTIONS.USERS, 'pharmacist_user'));
                 userData = userDoc.data();
             } else {
                 // For patients, find by email
@@ -915,7 +915,7 @@ async function resetData() {
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
     // Firebase auth state listener
-    onAuthStateChanged(window.auth, async (user) => {
+    window.onAuthStateChanged(window.auth, async (user) => {
         console.log('Auth state changed:', user ? 'signed in as ' + user.email : 'signed out');
         if (user) {
             // User is signed in
@@ -1133,7 +1133,7 @@ function showAddPatientForm() {
 
         // Store user profile in Firestore (will be linked when user logs in)
         const userId = patient.email.replace('@', '_').replace('.', '_');
-        await setDoc(doc(window.db, COLLECTIONS.USERS, userId), {
+        await window.setDoc(window.doc(window.db, COLLECTIONS.USERS, userId), {
             email: patient.email,
             role: 'patient',
             name: patient.name,

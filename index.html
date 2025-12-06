@@ -228,7 +228,7 @@
             <div id="inventory-section" class="section hidden">
                 <h2 class="text-3xl mb-6">Inventory Management</h2>
                 <button onclick="showAddMedForm()" class="bg-green-600 text-white px-4 py-2 rounded mb-4">Add Medication</button>
-                <div id="inventory-list" class="bg-white p-6 rounded-lg shadow-md">
+                <div id="inventory-list" class="bg-white p-6 rounded-lg shadow-md overflow-x-auto">
                     <!-- Inventory table will be populated here -->
                 </div>
             </div>
@@ -237,7 +237,7 @@
             <div id="prescriptions-section" class="section hidden">
                 <h2 class="text-3xl mb-6">Prescription Management</h2>
                 <button onclick="showAddPrescriptionForm()" class="bg-green-600 text-white px-4 py-2 rounded mb-4">Add Prescription</button>
-                <div id="prescriptions-list" class="bg-white p-6 rounded-lg shadow-md">
+                <div id="prescriptions-list" class="bg-white p-6 rounded-lg shadow-md overflow-x-auto">
                     <!-- Prescriptions table will be populated here -->
                 </div>
             </div>
@@ -246,7 +246,7 @@
             <div id="patients-section" class="section hidden">
                 <h2 class="text-3xl mb-6">Patient Management</h2>
                 <button onclick="showAddPatientForm()" class="bg-green-600 text-white px-4 py-2 rounded mb-4">Add Patient</button>
-                <div id="patients-list" class="bg-white p-6 rounded-lg shadow-md">
+                <div id="patients-list" class="bg-white p-6 rounded-lg shadow-md overflow-x-auto">
                     <!-- Patients table will be populated here -->
                 </div>
             </div>
@@ -336,8 +336,8 @@
     </div>
 
     <!-- Modals for forms -->
-    <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center">
-        <div class="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+    <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white p-4 sm:p-6 rounded-lg w-full max-w-sm sm:max-w-md max-h-full overflow-y-auto">
             <div id="modal-content">
                 <!-- Form content will be inserted here -->
             </div>

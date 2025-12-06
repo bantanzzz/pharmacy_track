@@ -7,6 +7,41 @@ const COLLECTIONS = {
     PRESCRIPTIONS: 'prescriptions'
 };
 
+// Authentication (Firebase)
+async function login(email, password) {
+    console.log('Login attempt for email:', email.replace(/(.{2}).*(@.*)/, '$1***$2'));
+    console.log('window.auth defined:', !!window.auth);
+    try {
+        console.log('Calling signInWithEmailAndPassword...');
+        const userCredential = await signInWithEmailAndPassword(window.auth, email, password);
+        console.log('Login successful for user:', userCredential.user.email);
+        return userCredential.user;
+    } catch (error) {
+        console.error('Login error details:', {
+            code: error.code,
+            message: error.message,
+            email: email
+        });
+        throw error;
+    }
+}
+
+function logout() {
+    signOut(window.auth).then(() => {
+        showLogin();
+    }).catch((error) => {
+        console.error('Logout error:', error);
+    });
+}
+
+function getCurrentUser() {
+    return window.auth.currentUser;
+}
+
+function isLoggedIn() {
+    return window.auth.currentUser !== null;
+}
+
 // Initialize demo data in Firebase
 async function initializeData() {
     try {
@@ -129,32 +164,6 @@ async function initializeData() {
 }
 
 
-// Authentication (Firebase)
-async function login(email, password) {
-    try {
-        const userCredential = await signInWithEmailAndPassword(window.auth, email, password);
-        return userCredential.user;
-    } catch (error) {
-        console.error('Login error:', error);
-        throw error;
-    }
-}
-
-function logout() {
-    signOut(window.auth).then(() => {
-        showLogin();
-    }).catch((error) => {
-        console.error('Logout error:', error);
-    });
-}
-
-function getCurrentUser() {
-    return window.auth.currentUser;
-}
-
-function isLoggedIn() {
-    return window.auth.currentUser !== null;
-}
 
 // Data management functions (Firebase)
 async function getData(collectionName) {
@@ -203,14 +212,15 @@ async function deleteData(collectionName, id) {
 // UI functions
 function showSection(sectionName) {
     // Hide all sections
-    document.querySelectorAll('.section').forEach(section => {
-        section.classList.add('hidden');
+    const allSections = document.querySelectorAll('.section');
+    allSections.forEach(section => {
+        section.style.display = 'none';
     });
 
     // Show selected section
     const section = document.getElementById(sectionName + '-section');
     if (section) {
-        section.classList.remove('hidden');
+        section.style.display = 'block';
     }
 
     // Render content based on section
@@ -229,62 +239,73 @@ function showSection(sectionName) {
     }
 }
 
-function showLogin() {
-    document.getElementById('login-section').classList.remove('hidden');
-    document.getElementById('main-content').classList.add('hidden');
-    closeMobileMenu(); // Close mobile menu when logging out
-}
 
 async function showMain() {
-    document.getElementById('login-section').classList.add('hidden');
-    document.getElementById('main-content').classList.remove('hidden');
+    console.log('showMain called');
+    document.getElementById('login-section').style.display = 'none';
+    document.getElementById('main-content').style.display = 'block';
+    console.log('UI visibility updated');
 
     const user = getCurrentUser();
+    console.log('Current user in showMain:', user ? user.email : 'none');
     if (!user) return;
 
     // Get user data from Firestore
     let userData = null;
     try {
+        console.log('Fetching user data for:', user.email);
         if (user.email === 'pharmacist@nawe.com') {
             const userDoc = await getDoc(doc(window.db, COLLECTIONS.USERS, 'pharmacist_user'));
             userData = userDoc.data();
+            console.log('User data retrieved:', userData);
         } else {
             // For patients, find by email
             const users = await getData(COLLECTIONS.USERS);
             userData = users.find(u => u.email === user.email);
+            console.log('User data from patients:', userData);
         }
     } catch (error) {
         console.error('Error getting user data in showMain:', error);
         userData = null;
     }
 
+    console.log('User role:', userData ? userData.role : 'unknown');
     if (userData && userData.role === 'patient') {
+        console.log('Showing patient dashboard');
         showPatientDashboard();
     } else {
+        console.log('Showing pharmacist dashboard');
         showSection('dashboard');
         await updateDashboard();
     }
     await updateNavigation();
+    console.log('showMain completed');
+}
+
+function showLogin() {
+    document.getElementById('login-section').style.display = 'block';
+    document.getElementById('main-content').style.display = 'none';
+    closeMobileMenu(); // Close mobile menu when logging out
 }
 
 function showModal(content) {
     document.getElementById('modal-content').innerHTML = content;
-    document.getElementById('modal').classList.remove('hidden');
+    document.getElementById('modal').style.display = 'block';
 }
 
 function hideModal() {
-    document.getElementById('modal').classList.add('hidden');
+    document.getElementById('modal').style.display = 'none';
 }
 
 // Mobile menu functions
 function toggleMobileMenu() {
     const mobileMenu = document.getElementById('mobile-menu');
-    mobileMenu.classList.toggle('hidden');
+    mobileMenu.style.display = mobileMenu.style.display === 'none' ? 'block' : 'none';
 }
 
 function closeMobileMenu() {
     const mobileMenu = document.getElementById('mobile-menu');
-    mobileMenu.classList.add('hidden');
+    mobileMenu.style.display = 'none';
 }
 
 // Role-based navigation
@@ -552,7 +573,7 @@ async function deleteMedication(id) {
 async function showPatientDashboard() {
     // Hide all sections
     document.querySelectorAll('.section').forEach(section => {
-        section.classList.add('hidden');
+        section.style.display = 'none';
     });
 
     const user = getCurrentUser();
@@ -645,7 +666,7 @@ async function showPatientDashboard() {
     // Insert the patient dashboard content
     const dashboardSection = document.getElementById('dashboard-section');
     dashboardSection.innerHTML = html;
-    dashboardSection.classList.remove('hidden');
+    dashboardSection.style.display = 'block';
 }
 
 async function viewPrescription(id) {
@@ -895,12 +916,16 @@ async function resetData() {
 document.addEventListener('DOMContentLoaded', function() {
     // Firebase auth state listener
     onAuthStateChanged(window.auth, async (user) => {
+        console.log('Auth state changed:', user ? 'signed in as ' + user.email : 'signed out');
         if (user) {
             // User is signed in
-            initializeData().catch(error => console.error('Error initializing data:', error)); // Ensure data is initialized asynchronously
+            console.log('Initializing data...');
+            initializeData().catch(error => console.error('Error initializing data:', error));
+            console.log('Calling showMain...');
             showMain();
         } else {
             // User is signed out
+            console.log('Calling showLogin...');
             showLogin();
         }
     });
@@ -910,11 +935,13 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
+        console.log('Login form submitted with email:', email.replace(/(.{2}).*(@.*)/, '$1***$2'));
 
         try {
             await login(email, password);
             // Auth state change will trigger showMain()
         } catch (error) {
+            console.error('Login form error:', error.message);
             alert('Login failed: ' + error.message);
         }
     });

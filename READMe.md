@@ -118,4 +118,4 @@ Credentials are shown in an alert after the patient is saved.
 
 ## License
 
-© 2025 Sierra Leone Pharmacy System. All rights reserved.
+© 2026 Sierra Leone Pharmacy System. All rights reserved.

@@ -70,117 +70,38 @@ async function initializeData() {
         const hasDemoUsers = users.some(u => ['admin@nawe.com', 'pharmacist@nawe.com', 'charles@nawe.com'].includes(u.email));
         if (!hasDemoUsers) {
             const demoUsers = [
-                {
-                    email: 'admin@nawe.com',
-                    role: 'admin',
-                    name: 'Admin User',
-                    createdAt: new Date()
-                },
-                {
-                    email: 'pharmacist@nawe.com',
-                    role: 'pharmacist',
-                    name: 'John Pharmacist',
-                    createdAt: new Date()
-                },
-                {
-                    email: 'charles@nawe.com',
-                    role: 'pharmacist',
-                    name: 'Charles User',
-                    createdAt: new Date()
-                }
+                { email: 'admin@nawe.com', role: 'admin', name: 'Admin User', createdAt: new Date() },
+                { email: 'pharmacist@nawe.com', role: 'pharmacist', name: 'John Pharmacist', createdAt: new Date() },
+                { email: 'charles@nawe.com', role: 'pharmacist', name: 'Charles User', createdAt: new Date() }
             ];
 
             for (const userData of demoUsers) {
                 const userId = userData.email.split('@')[0] + '_user';
                 await window.setDoc(window.doc(window.db, COLLECTIONS.USERS, userId), {
-                    email: userData.email,
-                    role: userData.role,
-                    name: userData.name,
-                    createdAt: userData.createdAt
+                    email: userData.email, role: userData.role, name: userData.name, createdAt: userData.createdAt
                 }, { merge: true });
             }
         }
 
-        // Add medications
-        const sampleMedications = [
-            {
-                name: 'Amoxicillin 500mg',
-                description: 'Antibiotic for bacterial infections',
-                category: 'Antibiotics',
-                stock: 150,
-                expiration: '2025-06-15'
-            },
-            {
-                name: 'Lisinopril 10mg',
-                description: 'ACE inhibitor for hypertension',
-                category: 'Cardiovascular',
-                stock: 75,
-                expiration: '2025-08-20'
-            },
-            {
-                name: 'Metformin 500mg',
-                description: 'Oral diabetes medicine',
-                category: 'Endocrine',
-                stock: 200,
-                expiration: '2025-12-01'
-            },
-            {
-                name: 'Ibuprofen 200mg',
-                description: 'NSAID for pain and inflammation',
-                category: 'Pain Relief',
-                stock: 8,
-                expiration: '2025-03-10'
-            },
-            {
-                name: 'Omeprazole 20mg',
-                description: 'Proton pump inhibitor for acid reflux',
-                category: 'Gastrointestinal',
-                stock: 45,
-                expiration: '2025-09-15'
-            },
-            {
-                name: 'Atorvastatin 20mg',
-                description: 'Statin for cholesterol management',
-                category: 'Cardiovascular',
-                stock: 60,
-                expiration: '2025-11-30'
-            }
-        ];
+        const meds = await getData(COLLECTIONS.MEDICATIONS);
+        if (meds.length === 0) {
+            const sampleMedications = [
+                { name: 'Amoxicillin 500mg', description: 'Antibiotic for bacterial infections', category: 'Antibiotics', stock: 150, expiration: '2025-06-15' },
+                { name: 'Lisinopril 10mg', description: 'ACE inhibitor for hypertension', category: 'Cardiovascular', stock: 75, expiration: '2025-08-20' },
+                { name: 'Metformin 500mg', description: 'Oral diabetes medicine', category: 'Endocrine', stock: 200, expiration: '2025-12-01' },
+                { name: 'Ibuprofen 200mg', description: 'NSAID for pain and inflammation', category: 'Pain Relief', stock: 8, expiration: '2025-03-10' },
+                { name: 'Omeprazole 20mg', description: 'Proton pump inhibitor for acid reflux', category: 'Gastrointestinal', stock: 45, expiration: '2025-09-15' },
+                { name: 'Atorvastatin 20mg', description: 'Statin for cholesterol management', category: 'Cardiovascular', stock: 60, expiration: '2025-11-30' }
+            ];
 
-        for (const med of sampleMedications) {
-            await addData(COLLECTIONS.MEDICATIONS, med);
+            for (const med of sampleMedications) {
+                await addData(COLLECTIONS.MEDICATIONS, med);
+            }
         }
 
-        // Create demo patients
-        const samplePatients = [
-            {
-                name: 'Sarah Johnson',
-                dob: '1985-03-15',
-                address: '32 Aberdeen Road, Freetown',
-                phone: '+232 76 123 456',
-                email: 'sarah.j@email.com'
-            },
-            {
-                name: 'Michael Chen',
-                dob: '1992-07-22',
-                address: '15 Kissy Street, Freetown',
-                phone: '+232 77 234 567',
-                email: 'm.chen@email.com'
-            },
-            {
-                name: 'Emily Davis',
-                dob: '1978-11-08',
-                address: '8 Wilkinson Road, Freetown',
-                phone: '+232 78 345 678',
-                email: 'emily.davis@email.com'
-            }
-        ];
+        // Patients are added manually via the Patients section
 
-        for (const patient of samplePatients) {
-            await addData(COLLECTIONS.PATIENTS, patient);
-        }
-
-        console.log('Demo data initialized successfully');
+        console.log('Demo data initialization checked');
 
     } catch (error) {
         console.error('Error initializing data:', error);

@@ -42,39 +42,63 @@ function isLoggedIn() {
     return window.auth.currentUser !== null;
 }
 
+async function ensureDemoUsers() {
+    const demoAccounts = [
+        { email: 'admin@nawe.com', password: '123admin', name: 'Admin User', role: 'admin' },
+        { email: 'pharmacist@nawe.com', password: '123password', name: 'John Pharmacist', role: 'pharmacist' },
+        { email: 'charles@nawe.com', password: '123password', name: 'Charles User', role: 'pharmacist' }
+    ];
+
+    for (const account of demoAccounts) {
+        try {
+            await window.createUserWithEmailAndPassword(window.auth, account.email, account.password);
+            console.log('Created demo Firebase Auth user:', account.email);
+        } catch (error) {
+            if (error.code === 'auth/email-already-in-use') {
+                console.log('Demo Firebase Auth user already exists:', account.email);
+            } else {
+                console.error('Error creating demo Firebase Auth user:', account.email, error);
+            }
+        }
+    }
+}
+
 // Initialize demo data in Firebase
 async function initializeData() {
     try {
-        // Check if data already exists
         const users = await getData(COLLECTIONS.USERS);
-        if (users.length > 0) return; // Data already initialized
+        const hasDemoUsers = users.some(u => ['admin@nawe.com', 'pharmacist@nawe.com', 'charles@nawe.com'].includes(u.email));
+        if (!hasDemoUsers) {
+            const demoUsers = [
+                {
+                    email: 'admin@nawe.com',
+                    role: 'admin',
+                    name: 'Admin User',
+                    createdAt: new Date()
+                },
+                {
+                    email: 'pharmacist@nawe.com',
+                    role: 'pharmacist',
+                    name: 'John Pharmacist',
+                    createdAt: new Date()
+                },
+                {
+                    email: 'charles@nawe.com',
+                    role: 'pharmacist',
+                    name: 'Charles User',
+                    createdAt: new Date()
+                }
+            ];
 
-        // Create demo users in Firestore (Note: Firebase Auth users need to be created manually or via admin SDK)
-        // For demo purposes, we'll store user profiles that correspond to manually created Firebase Auth users
-        const demoUsers = [
-            {
-                email: 'pharmacist@nawe.com',
-                role: 'pharmacist',
-                name: 'John Pharmacist',
-                createdAt: new Date()
-            },
-            {
-                email: 'charles@nawe.com',
-                role: 'pharmacist',
-                name: 'Charles User',
-                createdAt: new Date()
+            for (const userData of demoUsers) {
+                const userId = userData.email.split('@')[0] + '_user';
+                await window.setDoc(window.doc(window.db, COLLECTIONS.USERS, userId), {
+                    email: userData.email,
+                    role: userData.role,
+                    name: userData.name,
+                    createdAt: userData.createdAt
+                }, { merge: true });
             }
-        ];
-
-        for (const userData of demoUsers) {
-            // Store user profile in Firestore with a known ID
-            const userId = userData.email.split('@')[0] + '_user';
-            await window.setDoc(window.doc(window.db, COLLECTIONS.USERS, userId), {
-                email: userData.email,
-                role: userData.role,
-                name: userData.name,
-                createdAt: userData.createdAt
-            });
         }
 
         // Add medications
@@ -244,6 +268,7 @@ async function showMain() {
     console.log('showMain called');
     document.getElementById('login-section').style.display = 'none';
     document.getElementById('main-content').style.display = 'block';
+    document.getElementById('main-nav').style.display = 'block';
     console.log('UI visibility updated');
 
     const user = getCurrentUser();
@@ -285,6 +310,7 @@ async function showMain() {
 function showLogin() {
     document.getElementById('login-section').style.display = 'block';
     document.getElementById('main-content').style.display = 'none';
+    document.getElementById('main-nav').style.display = 'none';
     closeMobileMenu(); // Close mobile menu when logging out
 }
 
@@ -497,7 +523,8 @@ async function renderPatients() {
                 <td class="px-4 py-2">${patient.phone}</td>
                 <td class="px-4 py-2">
                     <button onclick="editPatient('${patient.id}')" class="text-blue-600 mr-2">Edit</button>
-                    <button onclick="deletePatient('${patient.id}')" class="text-red-600">Delete</button>
+                    <button onclick="deletePatient('${patient.id}')" class="text-red-600 mr-2">Delete</button>
+                    ${patient.email ? `<button onclick="resetPatientPassword('${patient.email}')" class="text-purple-600">Reset Password</button>` : '<button disabled class="text-gray-400 cursor-not-allowed">No Email</button>'}
                 </td>
             </tr>
         `;
@@ -890,6 +917,17 @@ async function deletePatient(id) {
     }
 }
 
+async function resetPatientPassword(patientEmail) {
+    if (!confirm(`Send password reset email to ${patientEmail}?`)) return;
+    try {
+        await window.sendPasswordResetEmail(window.auth, patientEmail);
+        alert(`Password reset email sent to ${patientEmail}.`);
+    } catch (error) {
+        console.error('Password reset error:', error);
+        alert('Error sending reset email: ' + error.message);
+    }
+}
+
 // Reset demo data
 async function resetData() {
     try {
@@ -914,6 +952,8 @@ async function resetData() {
 
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
+    ensureDemoUsers().catch(error => console.error('Error ensuring demo users:', error));
+
     // Firebase auth state listener
     window.onAuthStateChanged(window.auth, async (user) => {
         console.log('Auth state changed:', user ? 'signed in as ' + user.email : 'signed out');
@@ -1126,24 +1166,39 @@ function showAddPatientForm() {
         };
         const newPatient = await addData(COLLECTIONS.PATIENTS, patient);
 
-        // Generate login credentials (user needs to manually create in Firebase Auth)
         const nameParts = patient.name.toLowerCase().split(' ');
-        const lastName = nameParts[nameParts.length - 1];
+        const lastName = nameParts[nameParts.length - 1] || 'user';
         const password = '123' + lastName;
 
-        // Store user profile in Firestore (will be linked when user logs in)
-        const userId = patient.email.replace('@', '_').replace('.', '_');
-        await window.setDoc(window.doc(window.db, COLLECTIONS.USERS, userId), {
-            email: patient.email,
-            role: 'patient',
-            name: patient.name,
-            patientId: newPatient.id,
-            createdAt: new Date()
-        });
+        if (patient.email) {
+            try {
+                await window.createUserWithEmailAndPassword(window.auth, patient.email, password);
+                console.log('Created patient auth user:', patient.email);
+            } catch (error) {
+                if (error.code === 'auth/email-already-in-use') {
+                    console.log('Patient auth user already exists:', patient.email);
+                } else {
+                    console.error('Error creating patient auth user:', error);
+                }
+            }
+
+            const userId = patient.email.replace('@', '_').replace('.', '_');
+            await window.setDoc(window.doc(window.db, COLLECTIONS.USERS, userId), {
+                email: patient.email,
+                role: 'patient',
+                name: patient.name,
+                patientId: newPatient.id,
+                createdAt: new Date()
+            });
+        }
 
         hideModal();
         await renderPatients();
-        alert(`Patient added successfully!\n\nTo enable login, manually create user in Firebase Auth:\nEmail: ${patient.email}\nPassword: ${password}\n\nThen the patient can login with these credentials.`);
+        if (patient.email) {
+            alert(`Patient added successfully!\n\nLogin credentials:\nEmail: ${patient.email}\nPassword: ${password}`);
+        } else {
+            alert('Patient added (no email provided, so no login credentials created).');
+        }
     });
 }
 

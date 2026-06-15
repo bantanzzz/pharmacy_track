@@ -1,4 +1,4 @@
-# Na We Pharmacy System - System Design
+# Sierra Leone Pharmacy System - System Design
 
 ## System Architecture
 

@@ -1,5 +1,5 @@
 
-// Firebase collections
+
 const COLLECTIONS = {
     USERS: 'users',
     PATIENTS: 'patients',
@@ -7,14 +7,81 @@ const COLLECTIONS = {
     PRESCRIPTIONS: 'prescriptions'
 };
 
-// Authentication (Firebase)
-async function login(email, password) {
-    console.log('Login attempt for email:', email.replace(/(.{2}).*(@.*)/, '$1***$2'));
-    console.log('window.auth defined:', !!window.auth);
+let cachedUserData = null;
+let demoUsersEnsured = false;
+let demoDataInitialized = false;
+let activeMainUserEmail = null;
+
+function getUserDocId(email) {
+    return email.split('@')[0] + '_user';
+}
+
+async function fetchUserData(user) {
+    if (!user) return null;
+    if (cachedUserData && cachedUserData.email === user.email) {
+        return cachedUserData;
+    }
+
     try {
-        console.log('Calling signInWithEmailAndPassword...');
+        const userDoc = await window.getDoc(window.doc(window.db, COLLECTIONS.USERS, getUserDocId(user.email)));
+        if (userDoc.exists()) {
+            cachedUserData = { ...userDoc.data(), email: user.email };
+            return cachedUserData;
+        }
+
+        const users = await getData(COLLECTIONS.USERS);
+        cachedUserData = users.find(u => u.email === user.email) || null;
+        return cachedUserData;
+    } catch (error) {
+        console.error('Error fetching user data:', error);
+        return null;
+    }
+}
+
+function setStaffNavigation() {
+    const navLinks = document.getElementById('nav-links');
+    const mobileMenu = document.getElementById('mobile-menu');
+
+    navLinks.innerHTML = `
+        <a href="#" onclick="showSection('dashboard')" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Dashboard</a>
+        <a href="#" onclick="showSection('inventory')" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Inventory</a>
+        <a href="#" onclick="showSection('prescriptions')" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Prescriptions</a>
+        <a href="#" onclick="showSection('patients')" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Patients</a>
+        <a href="#" onclick="showSection('reports')" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Reports</a>
+        <a href="#" onclick="logout()" class="bg-red-500 hover:bg-red-600 px-3 py-2 rounded transition duration-200">Logout</a>
+    `;
+    mobileMenu.innerHTML = `
+        <div class="flex flex-col space-y-2 px-4">
+            <a href="#" onclick="showSection('dashboard'); closeMobileMenu()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Dashboard</a>
+            <a href="#" onclick="showSection('inventory'); closeMobileMenu()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Inventory</a>
+            <a href="#" onclick="showSection('prescriptions'); closeMobileMenu()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Prescriptions</a>
+            <a href="#" onclick="showSection('patients'); closeMobileMenu()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Patients</a>
+            <a href="#" onclick="showSection('reports'); closeMobileMenu()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Reports</a>
+            <a href="#" onclick="logout(); closeMobileMenu()" class="bg-red-500 hover:bg-red-600 px-3 py-2 rounded transition duration-200">Logout</a>
+        </div>
+    `;
+}
+
+function setPatientNavigation() {
+    const navLinks = document.getElementById('nav-links');
+    const mobileMenu = document.getElementById('mobile-menu');
+
+    navLinks.innerHTML = `
+        <a href="#" onclick="showPatientDashboard()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">My Records</a>
+        <a href="#" onclick="logout()" class="bg-red-500 hover:bg-red-600 px-3 py-2 rounded transition duration-200">Logout</a>
+    `;
+    mobileMenu.innerHTML = `
+        <div class="flex flex-col space-y-2 px-4">
+            <a href="#" onclick="showPatientDashboard(); closeMobileMenu()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">My Records</a>
+            <a href="#" onclick="logout(); closeMobileMenu()" class="bg-red-500 hover:bg-red-600 px-3 py-2 rounded transition duration-200">Logout</a>
+        </div>
+    `;
+}
+
+
+async function login(email, password) {
+    try {
         const userCredential = await window.signInWithEmailAndPassword(window.auth, email, password);
-        console.log('Login successful for user:', userCredential.user.email);
         return userCredential.user;
     } catch (error) {
         console.error('Login error details:', {
@@ -27,6 +94,7 @@ async function login(email, password) {
 }
 
 function logout() {
+    cachedUserData = null;
     window.signOut(window.auth).then(() => {
         showLogin();
     }).catch((error) => {
@@ -43,44 +111,46 @@ function isLoggedIn() {
 }
 
 async function ensureDemoUsers() {
+    if (demoUsersEnsured) return;
+    demoUsersEnsured = true;
+
     const demoAccounts = [
-        { email: 'admin@nawe.com', password: '123admin', name: 'Admin User', role: 'admin' },
-        { email: 'pharmacist@nawe.com', password: '123password', name: 'John Pharmacist', role: 'pharmacist' },
-        { email: 'charles@nawe.com', password: '123password', name: 'Charles User', role: 'pharmacist' }
+        { email: 'admin@slpharmacy.sl', password: '123admin', name: 'Admin User', role: 'admin' },
+        { email: 'pharmacist@slpharmacy.sl', password: '123password', name: 'John Pharmacist', role: 'pharmacist' },
+        { email: 'charles@slpharmacy.sl', password: '123password', name: 'Charles User', role: 'pharmacist' }
     ];
 
-    for (const account of demoAccounts) {
+    await Promise.allSettled(demoAccounts.map(async (account) => {
         try {
             await window.createUserWithEmailAndPassword(window.auth, account.email, account.password);
-            console.log('Created demo Firebase Auth user:', account.email);
         } catch (error) {
-            if (error.code === 'auth/email-already-in-use') {
-                console.log('Demo Firebase Auth user already exists:', account.email);
-            } else {
+            if (error.code !== 'auth/email-already-in-use') {
                 console.error('Error creating demo Firebase Auth user:', account.email, error);
             }
         }
-    }
+    }));
 }
 
-// Initialize demo data in Firebase
+
 async function initializeData() {
+    if (demoDataInitialized) return;
+    demoDataInitialized = true;
+
     try {
         const users = await getData(COLLECTIONS.USERS);
-        const hasDemoUsers = users.some(u => ['admin@nawe.com', 'pharmacist@nawe.com', 'charles@nawe.com'].includes(u.email));
+        const hasDemoUsers = users.some(u => ['admin@slpharmacy.sl', 'pharmacist@slpharmacy.sl', 'charles@slpharmacy.sl'].includes(u.email));
         if (!hasDemoUsers) {
             const demoUsers = [
-                { email: 'admin@nawe.com', role: 'admin', name: 'Admin User', createdAt: new Date() },
-                { email: 'pharmacist@nawe.com', role: 'pharmacist', name: 'John Pharmacist', createdAt: new Date() },
-                { email: 'charles@nawe.com', role: 'pharmacist', name: 'Charles User', createdAt: new Date() }
+                { email: 'admin@slpharmacy.sl', role: 'admin', name: 'Admin User', createdAt: new Date() },
+                { email: 'pharmacist@slpharmacy.sl', role: 'pharmacist', name: 'John Pharmacist', createdAt: new Date() },
+                { email: 'charles@slpharmacy.sl', role: 'pharmacist', name: 'Charles User', createdAt: new Date() }
             ];
 
-            for (const userData of demoUsers) {
-                const userId = userData.email.split('@')[0] + '_user';
-                await window.setDoc(window.doc(window.db, COLLECTIONS.USERS, userId), {
+            await Promise.all(demoUsers.map(userData =>
+                window.setDoc(window.doc(window.db, COLLECTIONS.USERS, getUserDocId(userData.email)), {
                     email: userData.email, role: userData.role, name: userData.name, createdAt: userData.createdAt
-                }, { merge: true });
-            }
+                }, { merge: true })
+            ));
         }
 
         const meds = await getData(COLLECTIONS.MEDICATIONS);
@@ -94,23 +164,17 @@ async function initializeData() {
                 { name: 'Atorvastatin 20mg', description: 'Statin for cholesterol management', category: 'Cardiovascular', stock: 60, expiration: '2025-11-30' }
             ];
 
-            for (const med of sampleMedications) {
-                await addData(COLLECTIONS.MEDICATIONS, med);
-            }
+            await Promise.all(sampleMedications.map(med => addData(COLLECTIONS.MEDICATIONS, med)));
         }
-
-        // Patients are added manually via the Patients section
-
-        console.log('Demo data initialization checked');
-
     } catch (error) {
+        demoDataInitialized = false;
         console.error('Error initializing data:', error);
     }
 }
 
 
 
-// Data management functions (Firebase)
+
 async function getData(collectionName) {
     try {
         const querySnapshot = await window.getDocs(window.collection(window.db, collectionName));
@@ -154,21 +218,21 @@ async function deleteData(collectionName, id) {
     }
 }
 
-// UI functions
+
 function showSection(sectionName) {
-    // Hide all sections
+
     const allSections = document.querySelectorAll('.section');
     allSections.forEach(section => {
         section.style.display = 'none';
     });
 
-    // Show selected section
+
     const section = document.getElementById(sectionName + '-section');
     if (section) {
         section.style.display = 'block';
     }
 
-    // Render content based on section
+
     if (sectionName === 'inventory') {
         renderInventory();
     }
@@ -186,53 +250,37 @@ function showSection(sectionName) {
 
 
 async function showMain() {
-    console.log('showMain called');
+    const user = getCurrentUser();
+    if (!user) return;
+
+    if (activeMainUserEmail === user.email && document.getElementById('login-section').style.display === 'none') {
+        return;
+    }
+    activeMainUserEmail = user.email;
+
+    const userData = await fetchUserData(user);
+
     document.getElementById('login-section').style.display = 'none';
     document.getElementById('main-content').style.display = 'block';
     document.getElementById('main-nav').style.display = 'block';
-    console.log('UI visibility updated');
 
-    const user = getCurrentUser();
-    console.log('Current user in showMain:', user ? user.email : 'none');
-    if (!user) return;
-
-    // Get user data from Firestore
-    let userData = null;
-    try {
-        console.log('Fetching user data for:', user.email);
-        if (user.email === 'pharmacist@nawe.com') {
-            const userDoc = await window.getDoc(window.doc(window.db, COLLECTIONS.USERS, 'pharmacist_user'));
-            userData = userDoc.data();
-            console.log('User data retrieved:', userData);
-        } else {
-            // For patients, find by email
-            const users = await getData(COLLECTIONS.USERS);
-            userData = users.find(u => u.email === user.email);
-            console.log('User data from patients:', userData);
-        }
-    } catch (error) {
-        console.error('Error getting user data in showPatientDashboard:', error);
-        userData = null;
-    }
-
-    console.log('User role:', userData ? userData.role : 'unknown');
     if (userData && userData.role === 'patient') {
-        console.log('Showing patient dashboard');
-        showPatientDashboard();
+        setPatientNavigation();
+        await showPatientDashboard();
     } else {
-        console.log('Showing pharmacist dashboard');
+        setStaffNavigation();
         showSection('dashboard');
-        await updateDashboard();
+        updateDashboard();
     }
-    await updateNavigation();
-    console.log('showMain completed');
 }
 
 function showLogin() {
+    cachedUserData = null;
+    activeMainUserEmail = null;
     document.getElementById('login-section').style.display = 'block';
     document.getElementById('main-content').style.display = 'none';
     document.getElementById('main-nav').style.display = 'none';
-    closeMobileMenu(); // Close mobile menu when logging out
+    closeMobileMenu();
 }
 
 function showModal(content) {
@@ -244,7 +292,7 @@ function hideModal() {
     document.getElementById('modal').style.display = 'none';
 }
 
-// Mobile menu functions
+
 function toggleMobileMenu() {
     const mobileMenu = document.getElementById('mobile-menu');
     mobileMenu.style.display = mobileMenu.style.display === 'none' ? 'block' : 'none';
@@ -255,69 +303,26 @@ function closeMobileMenu() {
     mobileMenu.style.display = 'none';
 }
 
-// Role-based navigation
+
 async function updateNavigation() {
     const user = getCurrentUser();
-    const navLinks = document.getElementById('nav-links');
-    const mobileMenu = document.getElementById('mobile-menu');
+    if (!user) return;
 
-    if (user) {
-        // Get user data from Firestore
-        let userData = null;
-        try {
-            if (user.email === 'pharmacist@nawe.com') {
-                const userDoc = await window.getDoc(window.doc(window.db, COLLECTIONS.USERS, 'pharmacist_user'));
-                userData = userDoc.data();
-            } else {
-                // For patients, find by email
-                const users = await getData(COLLECTIONS.USERS);
-                userData = users.find(u => u.email === user.email);
-            }
-        } catch (error) {
-            console.error('Error getting user data in updateNavigation:', error);
-            userData = null;
-        }
-
-        if (userData && userData.role === 'patient') {
-            navLinks.innerHTML = `
-                <a href="#" onclick="showPatientDashboard()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">My Records</a>
-                <a href="#" onclick="logout()" class="bg-red-500 hover:bg-red-600 px-3 py-2 rounded transition duration-200">Logout</a>
-            `;
-            mobileMenu.innerHTML = `
-                <div class="flex flex-col space-y-2 px-4">
-                    <a href="#" onclick="showPatientDashboard(); closeMobileMenu()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">My Records</a>
-                    <a href="#" onclick="logout(); closeMobileMenu()" class="bg-red-500 hover:bg-red-600 px-3 py-2 rounded transition duration-200">Logout</a>
-                </div>
-            `;
-        } else {
-            // Admin/Pharmacist navigation
-            navLinks.innerHTML = `
-                <a href="#" onclick="showSection('dashboard')" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Dashboard</a>
-                <a href="#" onclick="showSection('inventory')" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Inventory</a>
-                <a href="#" onclick="showSection('prescriptions')" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Prescriptions</a>
-                <a href="#" onclick="showSection('patients')" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Patients</a>
-                <a href="#" onclick="showSection('reports')" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Reports</a>
-                <a href="#" onclick="logout()" class="bg-red-500 hover:bg-red-600 px-3 py-2 rounded transition duration-200">Logout</a>
-            `;
-            mobileMenu.innerHTML = `
-                <div class="flex flex-col space-y-2 px-4">
-                    <a href="#" onclick="showSection('dashboard'); closeMobileMenu()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Dashboard</a>
-                    <a href="#" onclick="showSection('inventory'); closeMobileMenu()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Inventory</a>
-                    <a href="#" onclick="showSection('prescriptions'); closeMobileMenu()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Prescriptions</a>
-                    <a href="#" onclick="showSection('patients'); closeMobileMenu()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Patients</a>
-                    <a href="#" onclick="showSection('reports'); closeMobileMenu()" class="hover:bg-white hover:bg-opacity-20 px-3 py-2 rounded transition duration-200">Reports</a>
-                    <a href="#" onclick="logout(); closeMobileMenu()" class="bg-red-500 hover:bg-red-600 px-3 py-2 rounded transition duration-200">Logout</a>
-                </div>
-            `;
-        }
+    const userData = await fetchUserData(user);
+    if (userData && userData.role === 'patient') {
+        setPatientNavigation();
+    } else {
+        setStaffNavigation();
     }
 }
 
-// Dashboard
+
 async function updateDashboard() {
-    const meds = await getData(COLLECTIONS.MEDICATIONS);
-    const prescriptions = await getData(COLLECTIONS.PRESCRIPTIONS);
-    const patients = await getData(COLLECTIONS.PATIENTS);
+    const [meds, prescriptions, patients] = await Promise.all([
+        getData(COLLECTIONS.MEDICATIONS),
+        getData(COLLECTIONS.PRESCRIPTIONS),
+        getData(COLLECTIONS.PATIENTS)
+    ]);
     const lowStock = meds.filter(m => m.stock < 10).length;
 
     document.getElementById('total-meds').textContent = meds.length;
@@ -326,7 +331,7 @@ async function updateDashboard() {
     document.getElementById('total-patients').textContent = patients.length;
 }
 
-// Rendering functions
+
 async function renderInventory() {
     const meds = await getData(COLLECTIONS.MEDICATIONS);
     const container = document.getElementById('inventory-list');
@@ -455,7 +460,7 @@ async function renderPatients() {
     container.innerHTML = html;
 }
 
-// Action functions
+
 async function editMedication(id) {
     const meds = await getData(COLLECTIONS.MEDICATIONS);
     const med = meds.find(m => m.id == id);
@@ -517,9 +522,8 @@ async function deleteMedication(id) {
     }
 }
 
-// Patient dashboard
+
 async function showPatientDashboard() {
-    // Hide all sections
     document.querySelectorAll('.section').forEach(section => {
         section.style.display = 'none';
     });
@@ -527,11 +531,7 @@ async function showPatientDashboard() {
     const user = getCurrentUser();
     if (!user) return;
 
-    // Get user data from Firestore
-    const users = await getData(COLLECTIONS.USERS);
-    const userData = users.find(u => u.email === user.email);
-
-    // Check if user has patientId
+    const userData = await fetchUserData(user);
     if (!userData || !userData.patientId) {
         alert('Your account is not properly configured as a patient. Please contact the administrator.');
         logout();
@@ -541,7 +541,6 @@ async function showPatientDashboard() {
     const patients = await getData(COLLECTIONS.PATIENTS);
     const patient = patients.find(p => p.id == userData.patientId);
 
-    // Check if patient record exists
     if (!patient) {
         alert('Your patient record was not found. Please contact the administrator.');
         logout();
@@ -560,7 +559,6 @@ async function showPatientDashboard() {
                 <p class="text-gray-600">View your personal information and prescription history</p>
             </div>
 
-            <!-- Patient Info -->
             <div class="bg-white p-6 rounded-xl shadow-lg mb-8">
                 <h3 class="text-xl font-bold text-gray-800 mb-4">Personal Information</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -572,7 +570,6 @@ async function showPatientDashboard() {
                 </div>
             </div>
 
-            <!-- Prescriptions -->
             <div class="bg-white p-6 rounded-xl shadow-lg">
                 <h3 class="text-xl font-bold text-gray-800 mb-4">My Prescriptions</h3>
     `;
@@ -611,7 +608,7 @@ async function showPatientDashboard() {
         </div>
     `;
 
-    // Insert the patient dashboard content
+
     const dashboardSection = document.getElementById('dashboard-section');
     dashboardSection.innerHTML = html;
     dashboardSection.style.display = 'block';
@@ -748,7 +745,7 @@ async function fillPrescription(id) {
     let canFill = true;
     let insufficientStock = [];
 
-    // Check if all medications have sufficient stock
+
     prescription.items.forEach(item => {
         const med = medications.find(m => m.id == item.medicationId);
         if (med && med.stock < item.quantity) {
@@ -762,7 +759,7 @@ async function fillPrescription(id) {
         return;
     }
 
-    // Update stock levels
+
     for (const item of prescription.items) {
         const med = medications.find(m => m.id == item.medicationId);
         if (med) {
@@ -770,10 +767,10 @@ async function fillPrescription(id) {
         }
     }
 
-    // Update prescription status
+
     await updateData(COLLECTIONS.PRESCRIPTIONS, id, { status: 'filled' });
 
-    // Re-render
+
     await renderPrescriptions();
     await updateDashboard();
     alert('Prescription filled successfully!');
@@ -849,10 +846,10 @@ async function resetPatientPassword(patientEmail) {
     }
 }
 
-// Reset demo data
+
 async function resetData() {
     try {
-        // Clear all collections and re-initialize
+
         const collections = [COLLECTIONS.MEDICATIONS, COLLECTIONS.PATIENTS, COLLECTIONS.PRESCRIPTIONS];
 
         for (const collectionName of collections) {
@@ -862,7 +859,7 @@ async function resetData() {
             }
         }
 
-        // Re-initialize demo data
+
         await initializeData();
         alert('Demo data has been reset. You can now login with the demo credentials.');
     } catch (error) {
@@ -871,43 +868,39 @@ async function resetData() {
     }
 }
 
-// Event listeners
+
 document.addEventListener('DOMContentLoaded', function() {
     ensureDemoUsers().catch(error => console.error('Error ensuring demo users:', error));
 
-    // Firebase auth state listener
-    window.onAuthStateChanged(window.auth, async (user) => {
-        console.log('Auth state changed:', user ? 'signed in as ' + user.email : 'signed out');
+
+    window.onAuthStateChanged(window.auth, (user) => {
         if (user) {
-            // User is signed in
-            console.log('Initializing data...');
             initializeData().catch(error => console.error('Error initializing data:', error));
-            console.log('Calling showMain...');
             showMain();
         } else {
-            // User is signed out
-            console.log('Calling showLogin...');
             showLogin();
         }
     });
 
-    // Login form
+
     document.getElementById('login-form').addEventListener('submit', async function(e) {
         e.preventDefault();
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
-        console.log('Login form submitted with email:', email.replace(/(.{2}).*(@.*)/, '$1***$2'));
+        const submitBtn = e.target.querySelector('button[type="submit"]');
 
         try {
+            submitBtn.disabled = true;
             await login(email, password);
-            // Auth state change will trigger showMain()
         } catch (error) {
             console.error('Login form error:', error.message);
             alert('Login failed: ' + error.message);
+        } finally {
+            submitBtn.disabled = false;
         }
     });
 
-    // Hamburger menu
+
     const hamburgerBtn = document.getElementById('hamburger-btn');
     if (hamburgerBtn) {
         hamburgerBtn.addEventListener('click', toggleMobileMenu);
@@ -915,7 +908,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 });
 
-// Placeholder functions for forms (to be implemented)
+
 function showAddMedForm() {
     const form = `
         <h3 class="text-xl mb-4">Add Medication</h3>
@@ -1123,9 +1116,9 @@ function showAddPatientForm() {
     });
 }
 
-// Reports functions
+
 function renderReports() {
-    // Clear previous reports
+
     document.getElementById('inventory-report').innerHTML = '';
     document.getElementById('prescription-report').innerHTML = '';
 }
@@ -1199,7 +1192,7 @@ async function generatePrescriptionReport() {
     const activePrescriptions = prescriptions.filter(p => p.status === 'active');
     const filledPrescriptions = prescriptions.filter(p => p.status === 'filled');
 
-    // Most prescribed medications
+
     const medications = await getData(COLLECTIONS.MEDICATIONS);
     const medCounts = {};
     prescriptions.forEach(p => {
